@@ -31,6 +31,7 @@
     "serve:gecko": "yarn run _abstract-serve --env browser=gecko",
     "serve:chromium": "yarn run _abstract-serve --env browser=chromium",
     "serve:manual-test": "node scripts/serve-manual-test.mjs",
+    "bench": "vitest bench --run",
     "lint": "eslint ./src/",
     "verify:weekly-scorecard": "node --no-warnings --experimental-strip-types scripts/verify-weekly-scorecard.mjs",
     "verify:chromium": "node scripts/verify-chromium-build.mjs"
@@ -48,6 +49,7 @@
     "tone": "~14.7.77"
   },
   "devDependencies": {
+    "@codspeed/vitest-plugin": "^5.4.0",
     "@types/chrome": "^0.1.18",
     "@types/firefox-webext-browser": "^120.0.5",
     "@types/hh-mm-ss": "^1.2.3",
@@ -65,8 +67,11 @@
     "svelte-check": "^3.7.1",
     "svelte-loader": "^3.2.0",
     "svelte-preprocess": "^5.1.4",
+    "tinybench": "^2.9.0",
     "ts-loader": "^9.5.1",
     "typescript": "~5.8.3",
+    "vite": "^7.0.0",
+    "vitest": "^3.2.4",
     "webpack": "^5.91.0",
     "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "^6.0.1"

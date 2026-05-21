@@ -33,6 +33,7 @@ git submodule update --init
 corepack yarn install --frozen-lockfile
 corepack yarn build:chromium -- --env noreport
 corepack yarn verify:chromium
+corepack yarn bench
 corepack yarn serve:manual-test
 ```
 
