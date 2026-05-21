@@ -44,7 +44,17 @@ export async function waitForPopupTabLoad(tabPromise: Promise<PopupTab>): Promis
 
 export async function requestContentStatus(tab: PopupTab): Promise<void> {
   if (!tab.id) return;
-  await browserOrChrome.tabs.sendMessage(tab.id, "checkContentStatus");
+  try {
+    await browserOrChrome.tabs.sendMessage(tab.id, "checkContentStatus");
+  } catch (error) {
+    if (
+      error instanceof Error
+      && error.message.includes("Receiving end does not exist")
+    ) {
+      return;
+    }
+    throw error;
+  }
 }
 
 export function onPopupRuntimeMessage(listener: PopupRuntimeMessageListener): () => void {
