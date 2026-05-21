@@ -18,10 +18,8 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
 -->
 
 <script lang="ts">
-  import { browserOrChrome } from '@/webextensions-api-browser-or-chrome';
   import { onDestroy } from 'svelte';
   import {
-    addOnStorageChangedListener, getSettings, setSettings, settingsChanges2NewValues,
     ControllerKind_CLONING, ControllerKind_STRETCHING, changeAlgorithmAndMaybeRelatedSettings,
     ControllerKind_ALWAYS_SOUNDED,
     OppositeDayMode_ON,
@@ -57,13 +55,36 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     HotkeyAction_SET_MARGIN_AFTER,
     HotkeyAction_TOGGLE_PAUSE,
   } from '@/hotkeys';
-  import type { HotkeyBinding, NonSettingsAction } from '@/hotkeys';
+  import type { HotkeyBinding } from '@/hotkeys';
   import type createKeydownListener from './hotkeys';
   import throttle from 'lodash/throttle';
   import { assertDev, assertNever, getMessage } from '@/helpers';
   import { isMobile } from '@/helpers/isMobile';
   import type { Props as TippyProps } from 'tippy.js';
   import VolumeIndicator from './VolumeIndicator.svelte';
+  import {
+    loadPopupSettings,
+    onPopupSettingsChanged,
+    writePopupSettings,
+    type PopupSettings,
+  } from './adapters/popupStorageAdapter';
+  import {
+    getActivePopupTab,
+    getPopupCommands,
+    getPopupRuntimeUrl,
+    onPopupRuntimeMessage,
+    openPopupOptionsPage,
+    openPopupTab,
+    reloadPopupTab,
+    requestContentStatus,
+    waitForPopupTabLoad,
+    type PopupRuntimeMessageSender,
+  } from './adapters/popupTabAdapter';
+  import {
+    connectPopupNonSettingsActions,
+    connectPopupTelemetry,
+    type PopupNonSettingsActionsPort,
+  } from './adapters/popupTelemetryAdapter';
 
   // See ./popup.css. Would be cool to do this at build-time
   if (BUILD_DEFINITIONS.BROWSER === 'chromium') {
@@ -71,7 +92,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   }
 
   type RequiredSettings =
-    Pick<Settings,
+    Pick<PopupSettings,
       'enabled'
       | 'applyTo'
       | 'popupAutofocusEnabledInput'
@@ -106,7 +127,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     & Parameters<typeof rangeInputSettingNameToAttrs>[1];
   let settings: RequiredSettings;
 
-  let settingsPromise = getSettings();
+  let settingsPromise = loadPopupSettings();
   settingsPromise.then(s => {
     settings = s;
   })
@@ -116,54 +137,10 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       (settings[k] as any) = v;
     }
   }
-  async function getTab() {
-    // TODO but what about Kiwi browser? It always opens popup on a separate page. And in general, it's not always
-    // guaranteed that there will be a tab, is it?
-    const tabs = await browserOrChrome.tabs.query({ active: true, currentWindow: true, });
-    return tabs[0];
-  }
-  const tabPromise = getTab();
-  const tabLoadedPromise = (async () => {
-    let tab = await tabPromise;
-    if (tab.status !== 'complete') { // TODO it says `status` is optional? When is it missing?
-      tab = await new Promise(r => {
-        let pollTimeout: ReturnType<typeof setTimeout>;
-        function finishIfComplete(tab: browser.tabs.Tab | chrome.tabs.Tab) {
-          if (tab.status === 'complete') {
-            r(tab);
-            browserOrChrome.tabs.onUpdated.removeListener(onUpdatedListener);
-            clearTimeout(pollTimeout);
-            return true;
-          }
-        }
-        const onUpdatedListener = (
-          tabId: number,
-          _: unknown,
-          updatedTab: browser.tabs.Tab | chrome.tabs.Tab
-        ) => {
-          if (tabId !== tab.id) return;
-          finishIfComplete(updatedTab);
-        }
-        browserOrChrome.tabs.onUpdated.addListener(onUpdatedListener);
+  const tabPromise = getActivePopupTab();
+  const tabLoadedPromise = waitForPopupTabLoad(tabPromise);
 
-        // Sometimes if you open the popup during page load, it would never resolve. I tried attaching the listener
-        // before calling `browser.tabs.query`, but it didn't help either. This is a workaround. TODO.
-        async function queryTabStatusAndScheduleAnotherIfNotFinished() {
-          const tab = await getTab();
-          const finished = finishIfComplete(tab);
-          if (!finished) {
-            pollTimeout = setTimeout(queryTabStatusAndScheduleAnotherIfNotFinished, 2000);
-          }
-        }
-        pollTimeout = setTimeout(queryTabStatusAndScheduleAnotherIfNotFinished, 2000);
-      });
-    }
-    return tab;
-  })();
-
-  let nonSettingsActionsPort: Omit<ReturnType<typeof browserOrChrome.tabs.connect>, 'postMessage'> & {
-    postMessage: (actions: Array<HotkeyBinding<NonSettingsAction>>) => void;
-  } | undefined;
+  let nonSettingsActionsPort: PopupNonSettingsActionsPort | undefined;
 
   let resolveFirstTelemetryReceivedP: () => void;
   const firstTelemetryReceivedP = new Promise<void>(r => resolveFirstTelemetryReceivedP = r);
@@ -177,13 +154,15 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   let considerConnectionFailed = false;
   let gotAtLeastOneContentStatusResponse = false;
   let keydownListener: ReturnType<typeof createKeydownListener> | (() => {}) = () => {};
+  let removeRuntimeMessageListener: (() => void) | undefined;
+  onDestroy(() => removeRuntimeMessageListener?.());
   (async () => {
     const tab = await tabPromise;
     let elementLastActivatedAt: number | undefined;
 
     const onMessageListener = (
       message: any,
-      sender: chrome.runtime.MessageSender | browser.runtime.MessageSender
+      sender: PopupRuntimeMessageSender
     ) => {
       if (
         sender.tab?.id !== tab.id
@@ -201,27 +180,20 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
         const frameId = sender.frameId!;
         elementLastActivatedAt = message.elementLastActivatedAt;
 
-        // TODO how do we close it on popup close? Do we have to?
-        // https://developer.chrome.com/extensions/messaging#port-lifetime
-        const telemetryPort = browserOrChrome.tabs.connect(tab.id!, { name: 'telemetry', frameId });
-        telemetryPort.onMessage.addListener(msg => {
-          if (!msg) {
-            return;
-          }
-          latestTelemetryRecord = msg as TelemetryMessage;
-          resolveFirstTelemetryReceivedP();
+        const telemetryConnection = connectPopupTelemetry({
+          tabId: tab.id!,
+          frameId,
+          telemetryUpdatePeriodSeconds: telemetryUpdatePeriod,
+          onTelemetry(message) {
+            latestTelemetryRecord = message;
+            resolveFirstTelemetryReceivedP();
+          },
         });
-        let telemetryTimeoutId: ReturnType<typeof setTimeout>;
-        (function sendGetTelemetryAndScheduleAnother() {
-          telemetryPort.postMessage(IS_DEV_MODE ? 'getTelemetry' : undefined);
-          telemetryTimeoutId = setTimeout(sendGetTelemetryAndScheduleAnother, telemetryUpdatePeriod * 1000);
-        })();
 
-        nonSettingsActionsPort = browserOrChrome.tabs.connect(tab.id!, { name: 'nonSettingsActions', frameId });
+        nonSettingsActionsPort = connectPopupNonSettingsActions({ tabId: tab.id!, frameId });
 
         disconnect = () => {
-          clearTimeout(telemetryTimeoutId);
-          telemetryPort.disconnect();
+          telemetryConnection.disconnect();
           nonSettingsActionsPort!.disconnect();
           nonSettingsActionsPort = undefined;
           disconnect = undefined;
@@ -229,8 +201,8 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
         considerConnectionFailed = false; // In case it timed out at first, but then succeeded some time later.
       }
     };
-    browserOrChrome.runtime.onMessage.addListener(onMessageListener);
-    browserOrChrome.tabs.sendMessage(tab.id!, 'checkContentStatus') // TODO DRY.
+    removeRuntimeMessageListener = onPopupRuntimeMessage(onMessageListener);
+    requestContentStatus(tab);
   })();
 
   (async () => {
@@ -270,14 +242,14 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   // these changes in the `addOnStorageChangedListener` callback.
   // TODO it's better to fix the root cause (i.e. not to react to same-source changes).
   let unhandledStorageChanges: Partial<Settings> | null = null;
-  addOnStorageChangedListener(changes => {
-    const newValues = settingsChanges2NewValues(changes);
+  const removeStorageChangedListener = onPopupSettingsChanged(newValues => {
     if (thisScriptRecentlyUpdatedStorage) {
       unhandledStorageChanges = { ...unhandledStorageChanges, ...newValues };
     } else {
       assignNewSettings(newValues);
     }
   });
+  onDestroy(removeStorageChangedListener);
 
   let thisScriptRecentlyUpdatedStorage = false;
   let thisScriptRecentlyUpdatedStorageTimeoud = -1;
@@ -289,7 +261,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       // @ts-expect-error 2322 they're both `Settings` or `Partial<Settings>` and the key is the same.
       newValues[key] = settings[key] as (typeof newValues)[typeof key];
     });
-    setSettings(newValues);
+    writePopupSettings(newValues);
     settingsKeysToSaveToStorage.clear();
 
     thisScriptRecentlyUpdatedStorage = true;
@@ -347,7 +319,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   }
 
   const openLocalFileLinkProps = {
-    href: browserOrChrome.runtime.getURL('local-file-player/index.html'),
+    href: getPopupRuntimeUrl('local-file-player/index.html'),
     target: '_blank',
   } as const;
   // Firefox for Android acts weird and apparently opens this
@@ -358,9 +330,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     ? undefined
     : (e: Event) => {
       e.preventDefault();
-      browserOrChrome.tabs.create({
-        url: browserOrChrome.runtime.getURL('local-file-player/index.html')
-      });
+      openPopupTab(getPopupRuntimeUrl('local-file-player/index.html'));
       window.close();
     };
 
@@ -452,8 +422,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   }
 
   // `commands` API is currently not supported by Gecko for Android.
-  const commandsPromise: undefined | ReturnType<typeof browserOrChrome.commands.getAll>
-  = browserOrChrome.commands?.getAll?.();
+  const commandsPromise = getPopupCommands();
 
   let toggleExtensionTooltip: undefined | Partial<TippyProps> = undefined;
   if (commandsPromise) {
@@ -595,7 +564,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
         <!-- TODO but this is technically a button. Is this ok? -->
         <button
           on:click={() => {
-            browserOrChrome.runtime.openOptionsPage();
+            openPopupOptionsPage();
             if (isMobile) {
               // The options tab gets opened, but it's not visible
               // because the popup stays open. Let's close it.
@@ -673,8 +642,8 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
                   on:click={async () => {
                     // TODO same issue as with "retry".
                     settings.applyTo = 'both';
-                    await setSettings({ applyTo: 'both', enabled: false });
-                    setSettings({ enabled: true });
+                    await writePopupSettings({ applyTo: 'both', enabled: false });
+                    writePopupSettings({ enabled: true });
                   }}
                   style="margin: 0.25rem"
                 >🔍 {getMessage('alsoSearchFor', getMessage(settings.applyTo === 'videoOnly' ? 'audio' : 'video'))}</button>
@@ -683,7 +652,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
               <!-- TODO somehow highligth the related section after opening the options page? Or maybe it's Better
               to replace it with those very inputs from the options page? -->
               <button
-                on:click={() => browserOrChrome.runtime.openOptionsPage()}
+                on:click={() => openPopupOptionsPage()}
                 style="margin: 0.25rem"
               >⚙️ {getMessage('changeElementSearchCriteria')}</button>
               <!-- Event though we now have implemented dynamic element search, there may still be some bug where this
@@ -692,8 +661,8 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
                 on:click={async () => {
                   // TODO this flashes the parts of the UI that depend on the `enabled` setting, which doesn't look
                   // ideal.
-                  await setSettings({ enabled: false });
-                  setSettings({ enabled: true });
+                  await writePopupSettings({ enabled: false });
+                  writePopupSettings({ enabled: true });
                 }}
                 style="margin: 0.25rem"
               >🔄 {getMessage('retry')}</button>
@@ -886,7 +855,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
             // that we're currently connected to might not be the same tab,
             // e.g. if this popup is open in a separate tab.
             assertDev(tab.id)
-            browserOrChrome.tabs.reload(tab.id);
+            reloadPopupTab(tab);
           })
           const thisButton = e.target;
           assertDev(thisButton instanceof HTMLButtonElement)
