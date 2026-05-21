@@ -58,10 +58,16 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   import type { HotkeyBinding } from '@/hotkeys';
   import type createKeydownListener from './hotkeys';
   import throttle from 'lodash/throttle';
-  import { assertDev, assertNever, getMessage } from '@/helpers';
+  import { assertDev, getMessage } from '@/helpers';
   import { isMobile } from '@/helpers/isMobile';
-  import type { Props as TippyProps } from 'tippy.js';
   import VolumeIndicator from './VolumeIndicator.svelte';
+  import PopupShell from './components/PopupShell.svelte';
+  import EnableToggle from './components/EnableToggle.svelte';
+  import SpeedReadout from './components/SpeedReadout.svelte';
+  import SavedTimeCard from './components/SavedTimeCard.svelte';
+  import IntensitySlider from './components/IntensitySlider.svelte';
+  import IconButton from './components/IconButton.svelte';
+  import SettingsSheet from './components/SettingsSheet.svelte';
   import {
     loadPopupSettings,
     onPopupSettingsChanged,
@@ -70,7 +76,6 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   } from './adapters/popupStorageAdapter';
   import {
     getActivePopupTab,
-    getPopupCommands,
     getPopupRuntimeUrl,
     onPopupRuntimeMessage,
     openPopupOptionsPage,
@@ -85,6 +90,9 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     connectPopupTelemetry,
     type PopupNonSettingsActionsPort,
   } from './adapters/popupTelemetryAdapter';
+  import { buildWeeklyScorecard } from '@/helpers/weeklyScorecard';
+  import { simpleSliderToSettings } from './state/intensitySettings';
+  import { createPopupViewState } from './state/popupViewState';
 
   // See ./popup.css. Would be cool to do this at build-time
   if (BUILD_DEFINITIONS.BROWSER === 'chromium') {
@@ -145,6 +153,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   let resolveFirstTelemetryReceivedP: () => void;
   const firstTelemetryReceivedP = new Promise<void>(r => resolveFirstTelemetryReceivedP = r);
   let latestTelemetryRecord: TelemetryMessage | undefined;
+  let settingsSheetOpen = false;
   const telemetryUpdatePeriod = 0.02;
   let disconnect: undefined | (() => void);
   // Well, actaully we don't currently require this, because this component gets destroyed only when the document gets
@@ -334,6 +343,13 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       window.close();
     };
 
+  function openLocalFilePlayer() {
+    openPopupTab(getPopupRuntimeUrl('local-file-player/index.html'));
+    if (isMobile) {
+      window.close();
+    }
+  }
+
   function onUseExperimentalAlgorithmInput(e: Event) {
     const newControllerType = (e.target as HTMLInputElement).checked
       ? ControllerKind_CLONING
@@ -363,22 +379,62 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       onSimpleSliderInput();
     }
   }
-  function onSimpleSliderInput() {
-    settingsKeysToSaveToStorage.add('simpleSlider');
-    throttledSaveUnsavedSettingsToStorageAndTriggerCallbacks();
-
+  function onSimpleSliderInput(nextSimpleSlider = settings.simpleSlider) {
     updateSettingsLocalCopyAndStorage({
-      // If you decide to change these values,
-      // remember to also update them in `defaultSettings.ts`.
-      // When adjusting the values, keep in mind that _each_ of them
-      // affects how much we skip, that is adjusting even just one of them
-      // would make the extension skip more,
-      // and adjusting all of them at the same time would make it skip
-      // even more. So, keep them within sane, moderate limits.
-      volumeThreshold: 0.001 + settings.simpleSlider * 0.00015,
-      silenceSpeedRaw: 1.5 + settings.simpleSlider * 0.020,
-      marginAfter: 0.03 + 0.0020 * (100 - settings.simpleSlider)
+      simpleSlider: nextSimpleSlider,
+      ...simpleSliderToSettings(nextSimpleSlider),
+    });
+  }
+
+  function onEnabledChange(enabled: boolean) {
+    updateSettingsLocalCopyAndStorage({ enabled });
+  }
+
+  function openOptionsAndCloseOnMobile() {
+    openPopupOptionsPage();
+    if (isMobile) {
+      // The options tab gets opened, but it is not visible because the popup stays open.
+      window.close();
+    }
+  }
+
+  $: liveLifetimeSavedSeconds = latestTelemetryRecord?.lifetimeTimeSaved.timeSavedComparedToSoundedSpeed
+    ?? settings?.lifetimeTimeSavedComparedToSoundedSpeed
+    ?? 0;
+  $: scorecard = settings
+    ? buildWeeklyScorecard(
+      settings.weeklyTimeSavedComparedToSoundedSpeed,
+      liveLifetimeSavedSeconds,
+      settings.timeSavedLastSeenLifetimeMilestoneSeconds ?? 0,
+    )
+    : undefined;
+  $: if (
+    settings
+    && scorecard?.newlyReachedMilestoneSeconds != undefined
+    && settings.timeSavedLastSeenLifetimeMilestoneSeconds !== scorecard.newlyReachedMilestoneSeconds
+  ) {
+    updateSettingsLocalCopyAndStorage({
+      timeSavedLastSeenLifetimeMilestoneSeconds: scorecard.newlyReachedMilestoneSeconds,
+    });
+  }
+  $: viewState = settings && scorecard
+    ? createPopupViewState({
+      settings: {
+        ...settings,
+        weeklyTimeSavedComparedToSoundedSpeed: scorecard.weeklyTotalSeconds,
+        lifetimeTimeSavedComparedToSoundedSpeed: scorecard.lifetimeSeconds,
+      },
+      latestTelemetryRecord,
+      connected,
+      connectionFailed: considerConnectionFailed,
     })
+    : undefined;
+
+  function getMediaStatusLabel() {
+    if (viewState?.mediaStatus === 'active') return getMessage('video');
+    if (viewState?.mediaStatus === 'loading') return getMessage('loading');
+    if (viewState?.mediaStatus === 'unavailable') return getMessage('contentScriptFail');
+    return getMessage('noSuitableElement');
   }
 
   let hotkeysActions: {[P in HotkeyAction]?: HotkeyBinding[]} = {};
@@ -420,34 +476,6 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     // because it might also be translated in some languages.
     return '\n' + actionName + ': ' + actionString;
   }
-
-  // `commands` API is currently not supported by Gecko for Android.
-  const commandsPromise = getPopupCommands();
-
-  let toggleExtensionTooltip: undefined | Partial<TippyProps> = undefined;
-  if (commandsPromise) {
-    commandsPromise.then(commands => {
-      commands.forEach(command => {
-        if (command.name === 'toggle_enabled' && command.shortcut) {
-          toggleExtensionTooltip = {
-            content: getMessage("toggleSettingValue") + ': ' + command.shortcut,
-            theme: 'my-tippy',
-            placement: 'bottom',
-          }
-        }
-      });
-    });
-  }
-
-  $: timeSavedDummyVal =
-    settings == undefined
-    || settings.timeSavedRepresentation === 'minutesOutOfHour'
-      ? '88.8'
-      : settings.timeSavedRepresentation === 'effectivePlaybackRate'
-      ? '8.88'
-      : settings.timeSavedRepresentation === 'percentage'
-      ? '88.8%'
-      : assertNever(settings.timeSavedRepresentation) || ''
 
   let oppositeDayModeIsDiscoverable = false;
   (async () => {
@@ -513,99 +541,35 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   on:keydown={keydownListener}
 />
 {#await settingsPromise then _}
-  <div style="display: flex; justify-content: space-between;">
-    <div
-      style="
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-      "
-    >
-      <div style="margin-bottom: 0.375rem;">
-        <!-- TODO style: when `toggleExtensionTooltip == undefined`,
-        the tooltip is just empty. -->
-        <label
-        style="
-        display: inline-flex;
-        align-items: center;
-        "
-          use:tippy={toggleExtensionTooltip}
-        >
-          <!-- TODO it needs to be ensured that `on:change` (`on:input`) goes after `bind:` for all inputs.
-          DRY? With `{...myBind}` or something?
-          Also for some reason if you use `on:input` instead of `on:change` for this checkbox, it stops working.
-          Maybe it's more proper to not rely on `bind:` -->
-          <input
-            bind:checked={settings.enabled}
-            on:change={createOnInputListener('enabled')}
-            type="checkbox"
-            autofocus={settings.popupAutofocusEnabledInput}
-          >
-          <span>{getMessage('enable')}</span>
-        </label>
-      </div>
-      {#if settings.advancedMode}
-      <div style="margin-bottom: 0.375rem;">
-        <VolumeIndicator {latestTelemetryRecord} {getActionString}/>
-      </div>
-      {/if}
-    </div>
-    <div
-      style="
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+{#if viewState}
+<PopupShell>
+  <EnableToggle
+    slot="toggle"
+    enabled={viewState.enabled}
+    label={getMessage('enable')}
+    autofocusEnabled={settings.popupAutofocusEnabledInput}
+    onChange={onEnabledChange}
+  />
 
-        text-align: right;
-      "
-    >
-      {#if settings.advancedMode}
-      <div style="margin-bottom: 0.375rem;">
-        <!-- TODO but this is technically a button. Is this ok? -->
-        <button
-          on:click={() => {
-            openPopupOptionsPage();
-            if (isMobile) {
-              // The options tab gets opened, but it's not visible
-              // because the popup stays open. Let's close it.
-              window.close();
-            }
-          }}
-          use:tippy={{
-            content: () => getMessage('more'),
-            theme: 'my-tippy',
-          }}
-          style="padding: 0;"
-        >⚙️</button>
-      </div>
-      {/if}
-      <div style="margin-bottom: 0.375rem;">
-        {#await import(
-          /* webpackExports: ['default'] */
-          /* webpackPreload: true */
-          './TimeSaved.svelte'
-        )}
-          <div style="filter: blur(0.7px);">
-            <span>⏱️ {timeSavedDummyVal}</span>
-            {#if settings.soundedSpeed !== 1}
-              <span>/ {timeSavedDummyVal}</span>
-            {/if}
-            <br>
-            88:88:88.88
-          </div>
-        {:then { default: TimeSaved }}
-          <TimeSaved
-            {latestTelemetryRecord}
-            {settings}
-            onSettingsChange={updateSettingsLocalCopyAndStorage}
-          />
-        {/await}
-      </div>
-    </div>
-  </div>
+  <SpeedReadout
+    speedLabel={viewState.speedLabel}
+    statusLabel={getMediaStatusLabel()}
+    ariaLabel={getMessage('soundedSpeed')}
+  />
+
+  <SavedTimeCard
+    weeklyLabel={viewState.savedTime.weeklyLabel}
+    lifetimeLabel={viewState.savedTime.lifetimeLabel}
+    nextMilestoneLabel={viewState.savedTime.nextMilestoneLabel}
+    weeklyText={getMessage('timeSaved')}
+    lifetimeText={getMessage('timeSavedSinceInstallation')}
+    nextText={getMessage('more')}
+    ariaLabel={getMessage('timeSaved')}
+  />
 
   <!-- TODO transitions? -->
   <div
+    class="sl-chart-panel"
     style={
       `--popupChartWidth: ${settings.popupChartWidthPx}px;`
       + `--popupChartHeight: ${settings.popupChartHeightPx}px;`
@@ -759,26 +723,18 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   </div>
 
   {#if !settings.advancedMode}
-  <label
-    style="
-      margin-top: 1rem;
-      display: flex;
-      flex-direction: column;
-    "
-  >
-    <div style="display: flex; justify-content: space-between;">
-      <div>{getMessage("skipLess")}</div>
-      <div>{getMessage("skipMore")}</div>
-    </div>
-    <input
-      type="range"
-      min="0"
-      max="100"
-      bind:value={settings.simpleSlider}
-      on:input={onSimpleSliderInput}
-    />
-  </label>
+  <IntensitySlider
+    value={viewState.simpleSlider}
+    label={`${getMessage('skipLess')} / ${getMessage('skipMore')}`}
+    skipLessLabel={getMessage('skipLess')}
+    skipMoreLabel={getMessage('skipMore')}
+    onInput={onSimpleSliderInput}
+  />
   {:else}
+  <section class="sl-legacy-controls" aria-label="Advanced controls">
+  {#if settings.advancedMode}
+  <VolumeIndicator {latestTelemetryRecord} {getActionString}/>
+  {/if}
   <label
     use:tippy={{
       content: () => getMessage('useExperimentalAlgorithmTooltip'),
@@ -889,6 +845,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       theme: tippyThemeMyTippyAndPreLine,
     }}
   />
+  </section>
   {/if}
   {#if (
     settings.advancedMode
@@ -1004,47 +961,39 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     }}
   />
   {/if}
-  <div
-    style="
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      flex-wrap: wrap;
-    "
+  <SettingsSheet
+    open={settingsSheetOpen}
+    titleLabel={getMessage('popupAdvancedMode')}
+    advancedLabel={getMessage('popupAdvancedMode')}
+    onClose={() => settingsSheetOpen = false}
+    onOpenOptions={openOptionsAndCloseOnMobile}
   >
-    {#if settings.popupAlwaysShowOpenLocalFileLink}
-      <!-- svelte-ignore a11y-missing-attribute --->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <a
-        class="capitalize-first-letter"
-        {...openLocalFileLinkProps}
-        on:click={onClickOpenLocalFileLink}
-        style="margin-top: 1rem;"
-      >📂 {getMessage('openLocalFile')}</a>
-    {/if}
-    <label
-      style="
-        display: inline-flex;
-        align-items: center;
-        margin-top: 1rem;
-      "
-    >
+    <label class="sl-sheet__toggle">
       <input
         type="checkbox"
-        style="margin: 0px 0.5rem 0px 0px;"
         bind:checked={settings.advancedMode}
         on:change={e => onAdvancedModeChange(e.currentTarget.checked)}
       />
       {getMessage("popupAdvancedMode")}
     </label>
-  </div>
+    {#if settings.popupAlwaysShowOpenLocalFileLink}
+      <button type="button" on:click={openLocalFilePlayer}>{getMessage('openLocalFile')}</button>
+    {/if}
+  </SettingsSheet>
+
+  <svelte:fragment slot="footer">
+    <div class="sl-popup__footer-actions">
+      {#if settings.popupAlwaysShowOpenLocalFileLink}
+        <IconButton label={getMessage('openLocalFile')} icon="📂" onClick={openLocalFilePlayer} />
+      {/if}
+      <IconButton label={getMessage('popupAdvancedMode')} icon="⚙️" onClick={() => settingsSheetOpen = true} />
+    </div>
+  </svelte:fragment>
+</PopupShell>
+{/if}
 {/await}
 
 <style>
-  body > label:not(:first-child) {
-    margin-top: 1rem;
-  }
-
   /* Global because otherwise it's not applied. I think it's fine as we have to specify the theme explicitly anyway. */
   :global(.tippy-box[data-theme~='my-tippy']) {
     font-size: inherit;
