@@ -239,6 +239,13 @@ a {
   min-width: 0;
 }
 
+.sl-saved-display__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
 .sl-saved-display__label {
   color: var(--sl-lcd-dim);
   font-size: 11px;
@@ -246,6 +253,17 @@ a {
   letter-spacing: 0;
   line-height: 1;
   text-transform: uppercase;
+}
+
+.sl-saved-display__badge {
+  padding: 1px 4px;
+  border: 1px solid var(--sl-lcd-text);
+  color: var(--sl-lcd-text);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-shadow: 0 0 6px rgb(156 255 109 / 65%);
 }
 
 .sl-saved-display__value {
@@ -257,11 +275,46 @@ a {
   text-overflow: ellipsis;
   text-shadow: 0 0 7px rgb(156 255 109 / 35%);
   white-space: nowrap;
+  animation: sl-saved-counter-pop 420ms ease-out;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-level-track {
+  position: relative;
+  overflow: hidden;
+  height: 9px;
+  border: 1px solid #1a2b16;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgb(156 255 109 / 12%) 0,
+      rgb(156 255 109 / 12%) 1px,
+      transparent 1px,
+      transparent 12px
+    ),
+    #020402;
+  box-shadow: inset 1px 1px 0 #000;
+}
+
+.sl-level-track__fill {
+  display: block;
+  width: var(--sl-level-progress);
+  height: 100%;
+  background:
+    linear-gradient(90deg, #68f48f, var(--sl-lcd-text) 75%, #ffffff);
+  box-shadow:
+    0 0 8px rgb(156 255 109 / 55%),
+    inset 0 1px 0 rgb(255 255 255 / 55%);
+  animation: sl-level-fill-scan 900ms ease-out;
+}
+
+.sl-saved-display--level-up {
+  animation: sl-level-up-flash 1100ms ease-out;
 }
 
 .sl-saved-display__stats {
   display: grid;
-  grid-template-columns: auto 1fr auto 1fr;
+  grid-template-columns: auto 1fr;
   gap: 4px 6px;
   min-width: 0;
   color: var(--sl-lcd-dim);
@@ -277,6 +330,49 @@ a {
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@keyframes sl-saved-counter-pop {
+  0% {
+    transform: translateY(1px) scale(0.985);
+    text-shadow: 0 0 2px rgb(156 255 109 / 20%);
+  }
+  55% {
+    transform: translateY(0) scale(1.02);
+    text-shadow: 0 0 12px rgb(156 255 109 / 75%);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    text-shadow: 0 0 7px rgb(156 255 109 / 35%);
+  }
+}
+
+@keyframes sl-level-fill-scan {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: var(--sl-level-progress);
+  }
+}
+
+@keyframes sl-level-up-flash {
+  0%,
+  100% {
+    filter: none;
+  }
+  20%,
+  54% {
+    filter: drop-shadow(0 0 10px rgb(156 255 109 / 90%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-saved-display,
+  .sl-saved-display__value,
+  .sl-level-track__fill {
+    animation: none;
+  }
 }
 
 .sl-chart-panel {

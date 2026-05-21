@@ -18,8 +18,8 @@
  * along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { enabledSettingDefaultValue, OppositeDayMode } from './';
 import type { Settings } from './';
+import { enabledSettingDefaultValue } from './enabledSettingDefaultValue';
 import { ControllerKind } from './ControllerKind';
 import { HotkeyAction } from '@/hotkeys';
 import { getGeckoLikelyMaxNonMutedPlaybackRate } from '@/helpers';
@@ -278,5 +278,5 @@ export const defaultSettings: Readonly<Settings> = {
   advancedMode: false,
   simpleSlider: simpleSliderDefaultVal,
 
-  oppositeDayMode: OppositeDayMode.UNDISCOVERED,
+  oppositeDayMode: 'undiscovered' as Settings['oppositeDayMode'],
 };

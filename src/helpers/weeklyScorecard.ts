@@ -83,6 +83,33 @@ export function getNextMilestoneSeconds(lifetimeSeconds: number): number {
   );
 }
 
+export function getPreviousMilestoneSeconds(lifetimeSeconds: number): number {
+  const normalizedLifetime = Math.max(0, lifetimeSeconds);
+
+  if (normalizedLifetime < milestoneSeconds[0]) {
+    return 0;
+  }
+
+  if (normalizedLifetime >= milestoneSeconds[milestoneSeconds.length - 1]) {
+    return Math.floor(normalizedLifetime / (24 * 60 * 60)) * 24 * 60 * 60;
+  }
+
+  const reachedFixedMilestones = milestoneSeconds.filter(
+    (threshold) => threshold <= normalizedLifetime
+  );
+  return reachedFixedMilestones[reachedFixedMilestones.length - 1];
+}
+
+export function getSavedTimeLevel(lifetimeSeconds: number): number {
+  const normalizedLifetime = Math.max(0, lifetimeSeconds);
+
+  if (normalizedLifetime >= milestoneSeconds[milestoneSeconds.length - 1]) {
+    return milestoneSeconds.length + Math.floor(normalizedLifetime / (24 * 60 * 60));
+  }
+
+  return milestoneSeconds.filter((threshold) => threshold <= normalizedLifetime).length + 1;
+}
+
 export function getReachedMilestoneSeconds(
   lifetimeSeconds: number
 ): number | undefined {

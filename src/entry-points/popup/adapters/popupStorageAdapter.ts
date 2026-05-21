@@ -1,5 +1,6 @@
 import {
   addOnStorageChangedListener,
+  defaultSettings,
   getSettings,
   setSettings,
   settingsChanges2NewValues,
@@ -9,7 +10,7 @@ import {
 export type PopupSettings = Settings;
 
 export async function loadPopupSettings(): Promise<PopupSettings> {
-  return getSettings();
+  return getSettings(defaultSettings);
 }
 
 export async function writePopupSettings(settings: Partial<PopupSettings>): Promise<void> {

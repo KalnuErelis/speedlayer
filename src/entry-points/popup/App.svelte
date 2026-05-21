@@ -133,12 +133,21 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     & Parameters<typeof changeAlgorithmAndMaybeRelatedSettings>[0]
     & Parameters<typeof rangeInputSettingNameToAttrs>[1];
   let settings: RequiredSettings;
+  let queuedSettingsChangesBeforeLoad: Partial<RequiredSettings> | null = null;
 
   let settingsPromise = loadPopupSettings();
   settingsPromise.then(s => {
-    settings = s;
+    settings = queuedSettingsChangesBeforeLoad
+      ? { ...s, ...queuedSettingsChangesBeforeLoad }
+      : s;
+    queuedSettingsChangesBeforeLoad = null;
   })
   function assignNewSettings(newValues: Partial<RequiredSettings>) {
+    if (settings == undefined) {
+      queuedSettingsChangesBeforeLoad = { ...queuedSettingsChangesBeforeLoad, ...newValues };
+      return;
+    }
+
     for (const [k_, v] of Object.entries(newValues)) {
       const k = k_ as keyof typeof newValues;
       (settings[k] as any) = v;
@@ -390,7 +399,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     }
   }
 
-  $: liveLifetimeSavedSeconds = latestTelemetryRecord?.lifetimeTimeSaved.timeSavedComparedToSoundedSpeed
+  $: liveLifetimeSavedSeconds = latestTelemetryRecord?.lifetimeTimeSaved?.timeSavedComparedToSoundedSpeed
     ?? settings?.lifetimeTimeSavedComparedToSoundedSpeed
     ?? 0;
   $: scorecard = settings
@@ -419,6 +428,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       latestTelemetryRecord,
       connected,
       connectionFailed: considerConnectionFailed,
+      newlyReachedMilestoneSeconds: scorecard.newlyReachedMilestoneSeconds,
     })
     : undefined;
   function getMediaStatusLabel() {
@@ -544,12 +554,14 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
 
   <SavedTimeCard
     slot="display"
-    weeklyLabel={viewState.savedTime.weeklyLabel}
-    lifetimeLabel={viewState.savedTime.lifetimeLabel}
-    nextMilestoneLabel={viewState.savedTime.nextMilestoneLabel}
-    weeklyText="saved"
-    lifetimeText="total"
-    nextText="next"
+    savedLabel={viewState.savedTime.savedLabel}
+    weeklyBoostLabel={viewState.savedTime.weeklyBoostLabel}
+    levelLabel={viewState.savedTime.levelLabel}
+    progressPercent={viewState.savedTime.progressPercent}
+    toNextLevelLabel={viewState.savedTime.toNextLevelLabel}
+    isLevelUp={viewState.savedTime.isLevelUp}
+    weeklyText="this week"
+    progressText="next"
     ariaLabel={getMessage('timeSaved')}
   />
 

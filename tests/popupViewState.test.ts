@@ -20,9 +20,14 @@ describe("createPopupViewState", () => {
       mediaStatus: "loading",
       speedLabel: "1.5x",
       savedTime: {
-        weeklyLabel: "0.000s",
+        savedLabel: "60.000s",
+        weeklyBoostLabel: "+0.000s",
         lifetimeLabel: "60.000s",
+        levelLabel: "Level 1",
+        nextLevelLabel: "Level 2",
         nextMilestoneLabel: "900.000s",
+        progressPercent: 6.67,
+        toNextLevelLabel: "840.000s to Level 2",
       },
     });
   });
@@ -48,9 +53,43 @@ describe("createPopupViewState", () => {
       mediaStatus: "active",
       speedLabel: "1.75x",
       savedTime: {
-        weeklyLabel: "125.000s",
+        savedLabel: "3661.000s",
+        weeklyBoostLabel: "+125.000s",
         lifetimeLabel: "3661.000s",
+        levelLabel: "Level 3",
+        nextLevelLabel: "Level 4",
         nextMilestoneLabel: "7200.000s",
+        progressPercent: 1.69,
+        toNextLevelLabel: "3539.000s to Level 4",
+      },
+    });
+  });
+
+  it("uses live lifetime telemetry for the realtime saved counter", () => {
+    expect(createPopupViewState({
+      settings: {
+        enabled: true,
+        simpleSlider: 80,
+        soundedSpeed: 1.75,
+        weeklyTimeSavedComparedToSoundedSpeed: 125,
+        lifetimeTimeSavedComparedToSoundedSpeed: 3600,
+        timeSavedLastSeenLifetimeMilestoneSeconds: 3600,
+      },
+      latestTelemetryRecord: {
+        elementVolume: 0.2,
+        inputVolume: 0.2,
+        soundedSpeed: 1.75,
+        lifetimeTimeSaved: {
+          timeSavedComparedToSoundedSpeed: 3661.234,
+        },
+      },
+      connected: true,
+      connectionFailed: false,
+    })).toMatchObject({
+      savedTime: {
+        savedLabel: "3661.234s",
+        lifetimeLabel: "3661.234s",
+        toNextLevelLabel: "3538.766s to Level 4",
       },
     });
   });
