@@ -43,6 +43,7 @@ import {
   setPlaybackRateAndRememberIt
 } from './playbackRateChangeTracking';
 import type executeNonSettingsActionsT from './nonSettingsUserActions';
+import { getCurrentVideoTimeSavedIdentity } from '@/helpers/videoTimeSavedLeaderboard';
 
 type SomeController =
   ElementPlaybackControllerStretching
@@ -496,14 +497,16 @@ export default class AllMediaElementsController {
       );
       onDetach(() => timeSavedTracker.destroy());
 
-      const { startSavedSecondsTicker } = await import(
-        /* webpackExports: ['startSavedSecondsTicker'] */
+      const { createCurrentVideoSavedSecondsReader, startSavedSecondsTicker } = await import(
+        /* webpackExports: ['createCurrentVideoSavedSecondsReader', 'startSavedSecondsTicker'] */
         './savedSecondsTicker'
       );
-      startSavedSecondsTicker(
-        () => timeSavedTracker.timeSavedData.timeSavedComparedToSoundedSpeed,
-        onDetach
-      );
+      const getCurrentVideoSavedSeconds = createCurrentVideoSavedSecondsReader({
+        getEntries: () => this.settings?.videoTimeSavedLeaderboard,
+        getIdentity: () => getCurrentVideoTimeSavedIdentity(),
+        getCurrentSessionSavedSeconds: () => timeSavedTracker.timeSavedData.timeSavedComparedToSoundedSpeed,
+      });
+      startSavedSecondsTicker(getCurrentVideoSavedSeconds, onDetach);
 
       onSilenceSkippingSeek1 =
         timeSavedTracker.onSilenceSkippingSeek.bind(timeSavedTracker);

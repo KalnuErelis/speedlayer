@@ -1,6 +1,10 @@
+import type {
+  VideoTimeSavedEntry,
+  VideoTimeSavedIdentity,
+} from "@/helpers/videoTimeSavedLeaderboard";
+
 export interface SavedSecondsTickerStateInput {
   savedSeconds: number;
-  previousSavedSeconds: number;
 }
 
 export interface SavedSecondsTickerState {
@@ -12,14 +16,70 @@ export function createSavedSecondsTickerState(
   input: SavedSecondsTickerStateInput
 ): SavedSecondsTickerState {
   const savedSeconds = Math.max(0, Number.isFinite(input.savedSeconds) ? input.savedSeconds : 0);
-  const previousSavedSeconds = Math.max(
-    0,
-    Number.isFinite(input.previousSavedSeconds) ? input.previousSavedSeconds : 0
-  );
 
   return {
     label: `+${savedSeconds.toFixed(3)}s`,
-    visible: savedSeconds > previousSavedSeconds,
+    visible: true,
+  };
+}
+
+export function getSavedSecondsForCurrentVideo(input: {
+  entries: readonly VideoTimeSavedEntry[] | undefined;
+  identity: VideoTimeSavedIdentity | undefined;
+  currentSessionSavedSeconds: number;
+  savedSecondsAtVideoStart?: number;
+  sessionSavedSecondsAtVideoStart?: number;
+}): number {
+  const currentSessionSavedSeconds = Number.isFinite(input.currentSessionSavedSeconds)
+    ? input.currentSessionSavedSeconds
+    : 0;
+  const storedSavedSeconds = input.entries?.find(entry => entry.id === input.identity?.id)?.savedSeconds ?? 0;
+  const savedSecondsAtVideoStart = Number.isFinite(input.savedSecondsAtVideoStart)
+    ? input.savedSecondsAtVideoStart ?? 0
+    : storedSavedSeconds;
+  const sessionSavedSecondsAtVideoStart = Number.isFinite(input.sessionSavedSecondsAtVideoStart)
+    ? input.sessionSavedSecondsAtVideoStart ?? 0
+    : 0;
+  const currentVideoSessionSavedSeconds = Math.max(
+    0,
+    currentSessionSavedSeconds - sessionSavedSecondsAtVideoStart
+  );
+
+  return Math.max(
+    Math.max(0, storedSavedSeconds),
+    Math.max(0, savedSecondsAtVideoStart) + currentVideoSessionSavedSeconds
+  );
+}
+
+export function createCurrentVideoSavedSecondsReader(input: {
+  getEntries: () => readonly VideoTimeSavedEntry[] | undefined;
+  getIdentity: () => VideoTimeSavedIdentity | undefined;
+  getCurrentSessionSavedSeconds: () => number;
+}): () => number {
+  let activeIdentityId: string | undefined;
+  let savedSecondsAtVideoStart = 0;
+  let sessionSavedSecondsAtVideoStart = 0;
+
+  return () => {
+    const entries = input.getEntries();
+    const identity = input.getIdentity();
+    const currentSessionSavedSeconds = input.getCurrentSessionSavedSeconds();
+
+    if (identity?.id !== activeIdentityId) {
+      activeIdentityId = identity?.id;
+      savedSecondsAtVideoStart = entries?.find(entry => entry.id === identity?.id)?.savedSeconds ?? 0;
+      sessionSavedSecondsAtVideoStart = Number.isFinite(currentSessionSavedSeconds)
+        ? currentSessionSavedSeconds
+        : 0;
+    }
+
+    return getSavedSecondsForCurrentVideo({
+      entries,
+      identity,
+      currentSessionSavedSeconds,
+      savedSecondsAtVideoStart,
+      sessionSavedSecondsAtVideoStart,
+    });
   };
 }
 
@@ -33,8 +93,6 @@ export function startSavedSecondsTicker(
   const shadow = host.attachShadow({ mode: "closed" });
   const style = document.createElement("style");
   const value = document.createElement("span");
-  let previousSavedSeconds = 0;
-  let hideTimeout = -1;
 
   style.textContent = `
     :host {
@@ -44,12 +102,6 @@ export function startSavedSecondsTicker(
       right: max(12px, env(safe-area-inset-right));
       z-index: 2147483647;
       pointer-events: none;
-      opacity: 0;
-      transform: translateY(-4px);
-      transition: opacity 140ms ease, transform 140ms ease;
-    }
-
-    :host([data-visible="true"]) {
       opacity: 1;
       transform: translateY(0);
     }
@@ -79,22 +131,10 @@ export function startSavedSecondsTicker(
     const savedSeconds = getSavedSeconds();
     const state = createSavedSecondsTickerState({
       savedSeconds,
-      previousSavedSeconds,
     });
 
     value.textContent = state.label;
     host.dataset.visible = state.visible ? "true" : "false";
-    previousSavedSeconds = Math.max(
-      previousSavedSeconds,
-      Number.isFinite(savedSeconds) ? savedSeconds : 0
-    );
-
-    if (state.visible) {
-      clearTimeout(hideTimeout);
-      hideTimeout = window.setTimeout(() => {
-        host.dataset.visible = "false";
-      }, 1800);
-    }
   };
 
   const intervalId = window.setInterval(render, 100);
@@ -102,7 +142,6 @@ export function startSavedSecondsTicker(
 
   onStop(() => {
     clearInterval(intervalId);
-    clearTimeout(hideTimeout);
     host.remove();
   });
 }
