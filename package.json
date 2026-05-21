@@ -39,7 +39,8 @@
     "tune:detector": "node --no-warnings --experimental-strip-types scripts/evaluate-detector-fixtures.mjs",
     "lint": "eslint ./src/",
     "verify:weekly-scorecard": "node --no-warnings --experimental-strip-types scripts/verify-weekly-scorecard.mjs",
-    "verify:chromium": "node scripts/verify-chromium-build.mjs"
+    "verify:chromium": "node scripts/verify-chromium-build.mjs",
+    "smoke:chromium": "node scripts/smoke-chromium-extension.mjs"
   },
   "sideEffects": [
     "./src/{content,popup,background,options,local-file-player}/main.ts",
