@@ -40,7 +40,7 @@ describe("silence tuning harness", () => {
     });
 
     expect(ranges).toEqual([
-      { startSeconds: 1.149, endSeconds: 1.93 },
+      { startSeconds: 1.05, endSeconds: 1.93 },
     ]);
   });
 

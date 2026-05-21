@@ -112,7 +112,7 @@ export function detectSilenceRanges(
       activeSilenceStartSeconds == undefined &&
       sampleIndex - quietRunStartSample + 1 >= minimumSilenceSamples
     ) {
-      activeSilenceStartSeconds = sampleIndex / sampleRate;
+      activeSilenceStartSeconds = quietRunStartSample / sampleRate;
     }
   }
 

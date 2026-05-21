@@ -182,6 +182,21 @@ a {
   max-width: 100%;
 }
 
+.sl-timeline-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.sl-timeline-button:focus-visible {
+  outline: 2px solid #6ee7a7;
+  outline-offset: -3px;
+}
+
 .sl-intensity {
   display: grid;
   gap: 7px;

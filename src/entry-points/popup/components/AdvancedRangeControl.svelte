@@ -11,6 +11,8 @@
 
   export let useForInput: SvelteAction = () => ({});
   export let useForInputParams: SvelteActionParameters = undefined;
+
+  $: displayValue = Number.isFinite(value) ? value : 0;
 </script>
 
 <label class="sl-advanced-range">
@@ -26,6 +28,6 @@
     <span
       aria-hidden="true"
       class="sl-advanced-range__value"
-    >{value.toFixed(fractionalDigits)}</span>
+    >{displayValue.toFixed(fractionalDigits)}</span>
   </div>
 </label>

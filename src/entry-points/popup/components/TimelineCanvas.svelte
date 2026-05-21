@@ -22,6 +22,11 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   import { SpeedName_SILENCE, SpeedName_SOUNDED } from '@/helpers';
   import type { Settings } from '@/settings';
   import type { TelemetryMessage } from '@/entry-points/content/AllMediaElementsController';
+  import {
+    getTimelineMaxVolume,
+    getTimelineStrokeY,
+    getTimelineValueY,
+  } from '../state/timelineChartMath';
 
   type TimelineSample = {
     timelineMs: number;
@@ -123,10 +128,11 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
 
     const startMs = last.timelineMs - visibleDurationMs;
     const chartSamples = samples.filter(sample => sample.timelineMs >= startMs);
+    const maxVolume = getTimelineMaxVolume(volumeThreshold, chartSamples.map(sample => sample.volume));
     drawGrid(ctx);
     drawSpeedBands(ctx, chartSamples, startMs);
-    drawVolume(ctx, chartSamples, startMs);
-    drawThreshold(ctx);
+    drawVolume(ctx, chartSamples, startMs, maxVolume);
+    drawThreshold(ctx, maxVolume);
     drawOutputMarker(ctx, last.outputDelaySeconds);
   }
 
@@ -189,19 +195,14 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     ctx: CanvasRenderingContext2D,
     chartSamples: TimelineSample[],
     startMs: number,
+    maxVolume: number,
   ) {
     if (chartSamples.length < 2) return;
-
-    const targetThresholdHeight = 0.28;
-    const thresholdScale = volumeThreshold > 0
-      ? volumeThreshold / targetThresholdHeight
-      : 0.05;
-    const maxVolume = Math.max(thresholdScale, ...chartSamples.map(sample => sample.volume), 0.001);
 
     ctx.beginPath();
     chartSamples.forEach((sample, index) => {
       const x = xForTime(sample.timelineMs, startMs);
-      const y = heightPx - Math.min(1, sample.volume / maxVolume) * heightPx;
+      const y = getTimelineValueY({ value: sample.volume, maxVolume, heightPx });
       if (index === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
@@ -214,7 +215,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     ctx.beginPath();
     chartSamples.forEach((sample, index) => {
       const x = xForTime(sample.timelineMs, startMs);
-      const y = heightPx - Math.min(1, sample.volume / maxVolume) * heightPx;
+      const y = getTimelineValueY({ value: sample.volume, maxVolume, heightPx });
       if (index === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
@@ -223,8 +224,8 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     ctx.stroke();
   }
 
-  function drawThreshold(ctx: CanvasRenderingContext2D) {
-    const thresholdY = Math.max(1, Math.round(heightPx * 0.72) + 0.5);
+  function drawThreshold(ctx: CanvasRenderingContext2D, maxVolume: number) {
+    const thresholdY = getTimelineStrokeY({ value: volumeThreshold, maxVolume, heightPx });
     ctx.strokeStyle = 'rgba(255, 107, 107, 0.9)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -255,9 +256,15 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   });
 </script>
 
-<canvas
-  bind:this={canvasEl}
-  class="sl-timeline"
-  aria-label="Volume timeline"
+<button
+  type="button"
+  class="sl-timeline-button"
+  aria-label="Toggle playback"
   on:click={onClick}
-></canvas>
+>
+  <canvas
+    bind:this={canvasEl}
+    class="sl-timeline"
+    aria-hidden="true"
+  ></canvas>
+</button>

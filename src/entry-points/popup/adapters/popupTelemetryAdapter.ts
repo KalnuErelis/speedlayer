@@ -19,13 +19,32 @@ export function connectPopupTelemetry(args: {
 }): PopupTelemetryConnection {
   const telemetryPort = browserOrChrome.tabs.connect(args.tabId, { name: "telemetry", frameId: args.frameId });
   let telemetryTimeoutId: ReturnType<typeof setTimeout> | undefined;
+  let disconnected = false;
+
+  function cleanup() {
+    disconnected = true;
+    if (telemetryTimeoutId) {
+      clearTimeout(telemetryTimeoutId);
+      telemetryTimeoutId = undefined;
+    }
+  }
 
   telemetryPort.onMessage.addListener(message => {
     if (message) args.onTelemetry(message as TelemetryMessage);
   });
 
+  telemetryPort.onDisconnect.addListener(cleanup);
+
   function requestTelemetry() {
-    telemetryPort.postMessage(IS_DEV_MODE ? "getTelemetry" : undefined);
+    if (disconnected) return;
+
+    try {
+      telemetryPort.postMessage(IS_DEV_MODE ? "getTelemetry" : undefined);
+    } catch {
+      cleanup();
+      return;
+    }
+
     telemetryTimeoutId = setTimeout(requestTelemetry, args.telemetryUpdatePeriodSeconds * 1000);
   }
 
@@ -33,7 +52,8 @@ export function connectPopupTelemetry(args: {
 
   return {
     disconnect() {
-      if (telemetryTimeoutId) clearTimeout(telemetryTimeoutId);
+      if (disconnected) return;
+      cleanup();
       telemetryPort.disconnect();
     },
   };
