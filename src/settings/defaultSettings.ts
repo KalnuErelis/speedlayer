@@ -264,6 +264,7 @@ export const defaultSettings: Readonly<Settings> = {
   lifetimeWouldHaveLastedIfSpeedWasIntrinsic: 0,
   weeklyTimeSavedComparedToSoundedSpeed: emptyWeeklyTimeSavedState,
   timeSavedLastSeenLifetimeMilestoneSeconds: 0,
+  videoTimeSavedLeaderboard: [],
 
   // This used to be 'soundedSpeed', but since
   // `onPlaybackRateChangeFromOtherScripts` defaults to

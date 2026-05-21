@@ -4,6 +4,7 @@ import {
   getPreviousMilestoneSeconds,
   getSavedTimeLevel,
 } from "../../../helpers/weeklyScorecard";
+import type { VideoTimeSavedEntry } from "../../../helpers/videoTimeSavedLeaderboard";
 
 export type PopupMediaStatus = "active" | "loading" | "no-video" | "unavailable";
 
@@ -15,6 +16,7 @@ export type PopupViewStateInput = {
     weeklyTimeSavedComparedToSoundedSpeed: number;
     lifetimeTimeSavedComparedToSoundedSpeed: number;
     timeSavedLastSeenLifetimeMilestoneSeconds: number;
+    videoTimeSavedLeaderboard: VideoTimeSavedEntry[];
   };
   latestTelemetryRecord: {
     soundedSpeed?: number;
@@ -45,6 +47,10 @@ export type PopupViewState = {
     progressPercent: number;
     toNextLevelLabel: string;
     isLevelUp: boolean;
+    topVideos: Array<{
+      title: string;
+      savedLabel: string;
+    }>;
   };
 };
 
@@ -87,6 +93,12 @@ export function createPopupViewState(input: PopupViewStateInput): PopupViewState
       progressPercent,
       toNextLevelLabel: `${formatSavedTime(remainingSeconds)} to Level ${nextLevel}`,
       isLevelUp: input.newlyReachedMilestoneSeconds != undefined,
+      topVideos: settings.videoTimeSavedLeaderboard
+        .slice(0, 3)
+        .map(entry => ({
+          title: entry.title,
+          savedLabel: formatSavedTime(Math.max(0, entry.savedSeconds)),
+        })),
     },
   };
 }

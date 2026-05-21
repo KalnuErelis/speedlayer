@@ -2,6 +2,7 @@ import { addOnStorageChangedListener, type Settings } from "@/settings";
 import type TimeSavedTracker from "./TimeSavedTracker";
 import { getTimeSavedComparedToIntrinsicSpeedFraction, getTimeSavedComparedToSoundedSpeedFraction } from "@/helpers/timeSavedMath";
 import { updateWeeklyTimeSavedState } from "@/helpers/weeklyScorecard";
+import { getCurrentVideoTimeSavedIdentity, updateVideoTimeSavedLeaderboard } from "@/helpers/videoTimeSavedLeaderboard";
 
 /**
  * Starts tracking how much time we're saving on {@linkcode el},
@@ -22,6 +23,7 @@ export default function startTrackingLifetimeTimeSaved(
     | "lifetimeWouldHaveLastedIfSpeedWasSounded"
     | "lifetimeWouldHaveLastedIfSpeedWasIntrinsic"
     | "weeklyTimeSavedComparedToSoundedSpeed"
+    | "videoTimeSavedLeaderboard"
   >,
   setSettings_: (
     newValues: Partial<
@@ -32,6 +34,7 @@ export default function startTrackingLifetimeTimeSaved(
         | "lifetimeWouldHaveLastedIfSpeedWasSounded"
         | "lifetimeWouldHaveLastedIfSpeedWasIntrinsic"
         | "weeklyTimeSavedComparedToSoundedSpeed"
+        | "videoTimeSavedLeaderboard"
       >
     >
   ) => void,
@@ -167,6 +170,11 @@ export default function startTrackingLifetimeTimeSaved(
         settings.weeklyTimeSavedComparedToSoundedSpeed,
         soundedSavedDelta
       ),
+      videoTimeSavedLeaderboard: updateVideoTimeSavedLeaderboard(
+        settings.videoTimeSavedLeaderboard,
+        getCurrentVideoTimeSavedIdentity(),
+        soundedSavedDelta
+      ),
     });
     lastStoredTrackerVals = timeSavedInCurrSession;
   };
@@ -184,6 +192,9 @@ export default function startTrackingLifetimeTimeSaved(
   onStop(() =>
     document.removeEventListener("visibilitychange", onVisibilitychangeListener)
   );
+
+  const storageSaveIntervalId = setInterval(saveToStorage, 5_000);
+  onStop(() => clearInterval(storageSaveIntervalId));
 
   onStop(saveToStorage);
   // Call this only after `onDetach(saveToStorage)`,

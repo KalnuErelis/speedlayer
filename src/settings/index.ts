@@ -21,6 +21,7 @@
 import { HotkeyBinding } from '@/hotkeys';
 import { ControllerKind } from './ControllerKind';
 import type { WeeklyTimeSavedState } from '@/helpers/weeklyScorecard';
+import type { VideoTimeSavedEntry } from '@/helpers/videoTimeSavedLeaderboard';
 // For JSDoc.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type TimeSavedTracker from '@/entry-points/content/TimeSavedTracker';
@@ -161,6 +162,7 @@ export interface Settings {
   lifetimeWouldHaveLastedIfSpeedWasIntrinsic: number
   weeklyTimeSavedComparedToSoundedSpeed: WeeklyTimeSavedState
   timeSavedLastSeenLifetimeMilestoneSeconds: number
+  videoTimeSavedLeaderboard: VideoTimeSavedEntry[]
 
   // TODO should we add other options for this setting?
   /**

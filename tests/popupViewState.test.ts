@@ -11,6 +11,7 @@ describe("createPopupViewState", () => {
         weeklyTimeSavedComparedToSoundedSpeed: 0,
         lifetimeTimeSavedComparedToSoundedSpeed: 60,
         timeSavedLastSeenLifetimeMilestoneSeconds: 0,
+        videoTimeSavedLeaderboard: [],
       },
       latestTelemetryRecord: undefined,
       connected: false,
@@ -41,6 +42,7 @@ describe("createPopupViewState", () => {
         weeklyTimeSavedComparedToSoundedSpeed: 125,
         lifetimeTimeSavedComparedToSoundedSpeed: 3661,
         timeSavedLastSeenLifetimeMilestoneSeconds: 3600,
+        videoTimeSavedLeaderboard: [],
       },
       latestTelemetryRecord: {
         elementVolume: 0.2,
@@ -74,6 +76,7 @@ describe("createPopupViewState", () => {
         weeklyTimeSavedComparedToSoundedSpeed: 125,
         lifetimeTimeSavedComparedToSoundedSpeed: 3600,
         timeSavedLastSeenLifetimeMilestoneSeconds: 3600,
+        videoTimeSavedLeaderboard: [],
       },
       latestTelemetryRecord: {
         elementVolume: 0.2,
@@ -94,6 +97,51 @@ describe("createPopupViewState", () => {
     });
   });
 
+  it("shows the top saved videos", () => {
+    expect(createPopupViewState({
+      settings: {
+        enabled: true,
+        simpleSlider: 80,
+        soundedSpeed: 1.75,
+        weeklyTimeSavedComparedToSoundedSpeed: 125,
+        lifetimeTimeSavedComparedToSoundedSpeed: 3600,
+        timeSavedLastSeenLifetimeMilestoneSeconds: 3600,
+        videoTimeSavedLeaderboard: [
+          {
+            id: "youtube:lecture",
+            title: "Lecture",
+            url: "https://www.youtube.com/watch?v=lecture",
+            savedSeconds: 91.234,
+            lastSavedAt: 100,
+          },
+          {
+            id: "url:https://example.com/course",
+            title: "Course lesson",
+            url: "https://example.com/course",
+            savedSeconds: 15,
+            lastSavedAt: 90,
+          },
+        ],
+      },
+      latestTelemetryRecord: undefined,
+      connected: false,
+      connectionFailed: false,
+    })).toMatchObject({
+      savedTime: {
+        topVideos: [
+          {
+            title: "Lecture",
+            savedLabel: "91.234s",
+          },
+          {
+            title: "Course lesson",
+            savedLabel: "15.000s",
+          },
+        ],
+      },
+    });
+  });
+
   it("shows unavailable state when connection fails", () => {
     expect(createPopupViewState({
       settings: {
@@ -103,6 +151,7 @@ describe("createPopupViewState", () => {
         weeklyTimeSavedComparedToSoundedSpeed: 0,
         lifetimeTimeSavedComparedToSoundedSpeed: 0,
         timeSavedLastSeenLifetimeMilestoneSeconds: 0,
+        videoTimeSavedLeaderboard: [],
       },
       latestTelemetryRecord: undefined,
       connected: false,
@@ -121,6 +170,7 @@ describe("createPopupViewState", () => {
         weeklyTimeSavedComparedToSoundedSpeed: 0,
         lifetimeTimeSavedComparedToSoundedSpeed: 0,
         timeSavedLastSeenLifetimeMilestoneSeconds: 0,
+        videoTimeSavedLeaderboard: [],
       },
       latestTelemetryRecord: {
         elementVolume: 0.2,
@@ -144,6 +194,7 @@ describe("createPopupViewState", () => {
         weeklyTimeSavedComparedToSoundedSpeed: 0,
         lifetimeTimeSavedComparedToSoundedSpeed: 0,
         timeSavedLastSeenLifetimeMilestoneSeconds: 0,
+        videoTimeSavedLeaderboard: [],
       },
       latestTelemetryRecord: undefined,
       connected: true,

@@ -8,6 +8,10 @@
   export let weeklyText: string;
   export let progressText: string;
   export let ariaLabel: string;
+  export let topVideos: Array<{
+    title: string;
+    savedLabel: string;
+  }> = [];
 </script>
 
 <section class:sl-saved-display--level-up={isLevelUp} class="sl-saved-display" aria-label={ariaLabel}>
@@ -30,4 +34,15 @@
     <span>{progressText}</span>
     <span>{toNextLevelLabel}</span>
   </div>
+  {#if topVideos.length}
+    <div class="sl-video-saves">
+      <span class="sl-saved-display__label">top saves</span>
+      {#each topVideos as video}
+        <div class="sl-video-saves__row">
+          <span title={video.title}>{video.title}</span>
+          <strong>{video.savedLabel}</strong>
+        </div>
+      {/each}
+    </div>
+  {/if}
 </section>

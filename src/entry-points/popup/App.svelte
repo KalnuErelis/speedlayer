@@ -128,6 +128,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       | 'lifetimeWouldHaveLastedIfSpeedWasIntrinsic'
       | 'weeklyTimeSavedComparedToSoundedSpeed'
       | 'timeSavedLastSeenLifetimeMilestoneSeconds'
+      | 'videoTimeSavedLeaderboard'
     >
     & ReturnType<Parameters<typeof createKeydownListener>[1]>
     & Parameters<typeof changeAlgorithmAndMaybeRelatedSettings>[0]
@@ -560,6 +561,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     progressPercent={viewState.savedTime.progressPercent}
     toNextLevelLabel={viewState.savedTime.toNextLevelLabel}
     isLevelUp={viewState.savedTime.isLevelUp}
+    topVideos={viewState.savedTime.topVideos}
     weeklyText="this week"
     progressText="next"
     ariaLabel={getMessage('timeSaved')}
