@@ -28,10 +28,12 @@ let devErrorShown = false;
 
 /**
  * Takes volume data (e.g. from `VolumeFilter`) as input. Sends `SILENCE_START` when there has been silence for the
- * last `durationThreshold`, or `SILENCE_END` when a single sample above `maxSilenceVolumeThreshold` is found.
+ * last `durationThreshold`, or `SILENCE_END` when sound stays above `maxSilenceVolumeThreshold` briefly enough to
+ * ignore isolated clicks and waveform spikes.
  */
 class SilenceDetectorProcessor extends WorkaroundAudioWorkletProcessor {
   _lastLoudSampleInd: AudioContextTime;
+  _loudRunStartSampleInd?: AudioContextTime;
   _lastEmitedEventIsSilenceStartEvent: boolean;
   constructor(options: any) {
     super(options);
@@ -66,6 +68,12 @@ class SilenceDetectorProcessor extends WorkaroundAudioWorkletProcessor {
         maxValue: 1,
         automationRate: 'k-rate',
       },
+      {
+        name: 'loudDurationThreshold',
+        defaultValue: 0.015,
+        minValue: 0,
+        automationRate: 'k-rate',
+      },
     ];
   }
 
@@ -77,6 +85,7 @@ class SilenceDetectorProcessor extends WorkaroundAudioWorkletProcessor {
   process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>) {
     const volumeThreshold = parameters.volumeThreshold[0];
     const maxSilenceVolumeThreshold = parameters.maxSilenceVolumeThreshold?.[0] ?? volumeThreshold;
+    const loudDurationThreshold = parameters.loudDurationThreshold?.[0] ?? 0;
     const input = inputs[0];
     // TODO perf: can we stop checking this every time after we get an input connected?
     if (input.length === 0) {
@@ -103,21 +112,27 @@ class SilenceDetectorProcessor extends WorkaroundAudioWorkletProcessor {
     const channel = input[0];
     const numSamples = input[0].length;
     const durationThresholdSamples = parameters.durationThreshold[0] * sampleRate;
+    const loudDurationThresholdSamples = Math.max(1, loudDurationThreshold * sampleRate);
     for (let sampleI = 0; sampleI < numSamples; sampleI++) {
       const sampleIGlobal = currentFrame + sampleI;
       const sample = channel[sampleI];
       const sampleIsLoud = sample >= maxSilenceVolumeThreshold;
       if (sampleIsLoud) {
         this._lastLoudSampleInd = sampleIGlobal;
+        this._loudRunStartSampleInd ??= sampleIGlobal;
         if (this._lastEmitedEventIsSilenceStartEvent) {
-          const m: SilenceDetectorMessage = [
-            SilenceDetectorEventType.SILENCE_END,
-            sampleIGlobal / sampleRate,
-          ];
-          this.port.postMessage(m);
-          this._lastEmitedEventIsSilenceStartEvent = false;
+          const loudRunDurationSamples = sampleIGlobal - this._loudRunStartSampleInd + 1;
+          if (loudRunDurationSamples >= loudDurationThresholdSamples) {
+            const m: SilenceDetectorMessage = [
+              SilenceDetectorEventType.SILENCE_END,
+              this._loudRunStartSampleInd / sampleRate,
+            ];
+            this.port.postMessage(m);
+            this._lastEmitedEventIsSilenceStartEvent = false;
+          }
         }
       } else {
+        this._loudRunStartSampleInd = undefined;
         if (
           !this._lastEmitedEventIsSilenceStartEvent
           && this.isPastDurationThreshold(sampleIGlobal, durationThresholdSamples)

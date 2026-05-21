@@ -89,6 +89,32 @@ describe("silence tuning harness", () => {
     ]);
   });
 
+  test("does not end silence on isolated loud clicks", () => {
+    const fixture = synthesizeSegmentedFixture({
+      sampleRate: 1000,
+      segments: [
+        { label: "speech", durationSeconds: 1, amplitude: 0.20 },
+        { label: "silence", durationSeconds: 0.5, amplitude: 0.001 },
+        { label: "silence", durationSeconds: 0.01, amplitude: 0.10 },
+        { label: "silence", durationSeconds: 0.5, amplitude: 0.001 },
+        { label: "speech", durationSeconds: 1, amplitude: 0.20 },
+      ],
+    });
+
+    const ranges = detectSilenceRanges(fixture.samples, fixture.sampleRate, {
+      volumeThreshold: 0.01,
+      maxSilenceVolumeThreshold: getMusicAwareSilenceVolumeThreshold(0.01),
+      loudDurationThresholdSeconds: 0.015,
+      minimumSilenceSeconds: 0.1,
+      marginBeforeSeconds: 0,
+      marginAfterSeconds: 0,
+    });
+
+    expect(ranges).toEqual([
+      { startSeconds: 1, endSeconds: 2.01 },
+    ]);
+  });
+
   test("scores missed silence and clipped speech", () => {
     const metrics = evaluateSilenceDetection({
       expectedSilenceRanges: [

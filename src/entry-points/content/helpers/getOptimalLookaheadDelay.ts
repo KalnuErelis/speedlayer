@@ -35,6 +35,9 @@ export function getOptimalLookaheadDelay(...args: Parameters<typeof getMinLookah
   // Basically set this as low as you can without getting warnings from `StretcherAndPitchCorrectorNode` (not just on
   // your PC, ofc). TODO maybe put this in settings?
   const codeExecutionMargin: TimeDelta = 0.01;
+  // Keep this in sync with SilenceDetectorProcessor's loudDurationThreshold default. Silence end events are posted
+  // only after a brief confirmed loud run, so the stretcher needs enough lookahead to avoid clipping speech starts.
+  const loudRunConfirmationMargin: TimeDelta = 0.015;
 
-  return getMinLookaheadDelay(...args) + codeExecutionMargin;
+  return getMinLookaheadDelay(...args) + codeExecutionMargin + loudRunConfirmationMargin;
 }

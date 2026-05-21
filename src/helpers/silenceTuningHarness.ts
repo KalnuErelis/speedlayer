@@ -23,6 +23,7 @@ export interface SegmentedFixture {
 export interface DetectorProfile {
   volumeThreshold: number;
   maxSilenceVolumeThreshold?: number;
+  loudDurationThresholdSeconds?: number;
   minimumSilenceSeconds: number;
   marginBeforeSeconds: number;
   marginAfterSeconds: number;
@@ -87,28 +88,39 @@ export function detectSilenceRanges(
   );
   const maxSilenceVolumeThreshold =
     profile.maxSilenceVolumeThreshold ?? profile.volumeThreshold;
+  const loudDurationThresholdSamples = Math.max(
+    1,
+    Math.round((profile.loudDurationThresholdSeconds ?? 0) * sampleRate)
+  );
   const ranges: SilenceRange[] = [];
   let quietRunStartSample: number | undefined;
+  let loudRunStartSample: number | undefined;
   let activeSilenceStartSeconds: number | undefined;
 
   for (let sampleIndex = 0; sampleIndex < volumes.length; sampleIndex += 1) {
     const isLoud = volumes[sampleIndex] >= maxSilenceVolumeThreshold;
 
     if (isLoud) {
+      quietRunStartSample = undefined;
+      loudRunStartSample ??= sampleIndex;
+
       if (activeSilenceStartSeconds != undefined) {
-        pushMarginAdjustedRange(
-          ranges,
-          activeSilenceStartSeconds,
-          sampleIndex / sampleRate,
-          profile
-        );
-        activeSilenceStartSeconds = undefined;
+        const loudRunSamples = sampleIndex - loudRunStartSample + 1;
+        if (loudRunSamples >= loudDurationThresholdSamples) {
+          pushMarginAdjustedRange(
+            ranges,
+            activeSilenceStartSeconds,
+            loudRunStartSample / sampleRate,
+            profile
+          );
+          activeSilenceStartSeconds = undefined;
+        }
       }
 
-      quietRunStartSample = undefined;
       continue;
     }
 
+    loudRunStartSample = undefined;
     quietRunStartSample ??= sampleIndex;
 
     if (
