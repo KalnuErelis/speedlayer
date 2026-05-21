@@ -2,6 +2,7 @@
   export let open: boolean;
   export let titleLabel: string;
   export let advancedLabel: string;
+  export let closeLabel = "Close settings";
   export let onClose: () => void;
   export let onOpenOptions: () => void;
 </script>
@@ -10,7 +11,7 @@
   <section class="sl-sheet" aria-label={titleLabel}>
     <div class="sl-sheet__header">
       <span>{titleLabel}</span>
-      <button class="sl-sheet__close" type="button" on:click={onClose} aria-label={titleLabel}>×</button>
+      <button class="sl-sheet__close" type="button" on:click={onClose} aria-label={closeLabel}>×</button>
     </div>
     <slot />
     <button class="sl-sheet__advanced" type="button" on:click={onOpenOptions}>{advancedLabel}</button>

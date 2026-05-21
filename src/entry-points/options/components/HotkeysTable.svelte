@@ -65,12 +65,14 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
 <div style={'overflow-x: auto;' + style}>
   <table>
     <thead>
-      <th>{getMessage('action')}</th>
-      <th>{getMessage('hotkey')}</th>
-      <th>{getMessage('value')}</th>
-      {#if displayOverrideWebsiteHotkeysColumn}
-        <th>{getMessage('overrideWebsiteHotkeys')}</th>
-      {/if}
+      <tr>
+        <th>{getMessage('action')}</th>
+        <th>{getMessage('hotkey')}</th>
+        <th>{getMessage('value')}</th>
+        {#if displayOverrideWebsiteHotkeysColumn}
+          <th>{getMessage('overrideWebsiteHotkeys')}</th>
+        {/if}
+      </tr>
     </thead>
     <tbody>
       <!-- It would be more logical to use a named slot, but https://github.com/sveltejs/svelte/issues/1037. -->

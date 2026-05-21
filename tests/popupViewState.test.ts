@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createPopupViewState } from "@/entry-points/popup/state/popupViewState";
 
 describe("createPopupViewState", () => {
-  it("shows a no-video state before telemetry arrives", () => {
+  it("shows a loading state before the connection resolves", () => {
     expect(createPopupViewState({
       settings: {
         enabled: true,
@@ -17,7 +17,7 @@ describe("createPopupViewState", () => {
       connectionFailed: false,
     })).toMatchObject({
       enabled: true,
-      mediaStatus: "no-video",
+      mediaStatus: "loading",
       speedLabel: "1.5x",
       savedTime: {
         weeklyLabel: "0s",

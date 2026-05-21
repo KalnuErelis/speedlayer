@@ -50,7 +50,7 @@ function getMediaStatus(input: PopupViewStateInput): PopupMediaStatus {
   if (input.connectionFailed) return "unavailable";
   if (input.connected && input.latestTelemetryRecord) return "active";
   if (input.connected) return "loading";
-  return "no-video";
+  return "loading";
 }
 
 function formatSpeed(speed: number): string {

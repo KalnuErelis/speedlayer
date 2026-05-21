@@ -429,6 +429,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       connectionFailed: considerConnectionFailed,
     })
     : undefined;
+  $: chartWidthPx = Math.min(settings?.popupChartWidthPx ?? 336, 336);
 
   function getMediaStatusLabel() {
     if (viewState?.mediaStatus === 'active') return getMessage('video');
@@ -571,9 +572,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   <div
     class="sl-chart-panel"
     style={
-      `--popupChartWidth: ${settings.popupChartWidthPx}px;`
-      + `--popupChartHeight: ${settings.popupChartHeightPx}px;`
-      +'min-width: var(--popupChartWidth);'
+      `--popupChartHeight: ${settings.popupChartHeightPx}px;`
       + 'min-height: var(--popupChartHeight);'
       + 'display: flex;'
       + 'align-items: center;'
@@ -581,9 +580,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   >
   <div
     style={
-      "min-width: 100%;"
-      // So in Gecko it prefers to wrap instead of exceeding `settings.popupChartWidthPx`.
-      + "width: min-content;"
+      "width: 100%;"
     }
   >
   {#if !connected}
@@ -686,7 +683,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
         {latestTelemetryRecord}
         volumeThreshold={settings.volumeThreshold}
         loadedPromise={settingsPromise}
-        widthPx={settings.popupChartWidthPx}
+        widthPx={chartWidthPx}
         heightPx={settings.popupChartHeightPx}
         lengthSeconds={settings.popupChartLengthInSeconds}
         jumpPeriod={settings.popupChartJumpPeriod}
@@ -965,6 +962,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     open={settingsSheetOpen}
     titleLabel={getMessage('popupAdvancedMode')}
     advancedLabel={getMessage('popupAdvancedMode')}
+    closeLabel="Close settings"
     onClose={() => settingsSheetOpen = false}
     onOpenOptions={openOptionsAndCloseOnMobile}
   >
