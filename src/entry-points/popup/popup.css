@@ -280,6 +280,43 @@ a {
   accent-color: #8dd7b8;
 }
 
+.sl-advanced-range {
+  display: block;
+  margin-top: 10px;
+}
+
+.sl-advanced-range__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sl-advanced-range__row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sl-advanced-range__value {
+  min-width: var(--number-representation-min-width);
+  text-align: end;
+  color: #f4f7f5;
+}
+
+.sl-volume-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sl-volume-meter__icon {
+  display: inline-block;
+  min-width: 2.5ch;
+}
+
+.sl-volume-meter meter {
+  width: 6rem;
+}
+
 .content-script-connection-info {
   min-height: var(--popupChartHeight);
   padding: 10px;

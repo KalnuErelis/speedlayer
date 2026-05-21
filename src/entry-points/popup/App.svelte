@@ -29,7 +29,6 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   } from '@/settings';
   import type { PopupAdjustableRangeInputsCapitalized, Settings } from '@/settings';
   import { tippyActionAsyncPreload as tippy } from './tippyAction';
-  import RangeSlider from './RangeSlider.svelte';
   import type { TelemetryMessage } from '@/entry-points/content/AllMediaElementsController';
   import {
     HotkeyAction,
@@ -60,7 +59,6 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   import throttle from 'lodash/throttle';
   import { assertDev, getMessage } from '@/helpers';
   import { isMobile } from '@/helpers/isMobile';
-  import VolumeIndicator from './VolumeIndicator.svelte';
   import PopupShell from './components/PopupShell.svelte';
   import EnableToggle from './components/EnableToggle.svelte';
   import SpeedReadout from './components/SpeedReadout.svelte';
@@ -69,6 +67,8 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   import IconButton from './components/IconButton.svelte';
   import SettingsSheet from './components/SettingsSheet.svelte';
   import TimelineCanvas from './components/TimelineCanvas.svelte';
+  import AdvancedRangeControl from './components/AdvancedRangeControl.svelte';
+  import CurrentVolumeMeter from './components/CurrentVolumeMeter.svelte';
   import {
     loadPopupSettings,
     onPopupSettingsChanged,
@@ -698,7 +698,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   {:else}
   <section class="sl-legacy-controls" aria-label="Advanced controls">
   {#if settings.advancedMode}
-  <VolumeIndicator {latestTelemetryRecord} {getActionString}/>
+  <CurrentVolumeMeter {latestTelemetryRecord} {getActionString}/>
   {/if}
   <label
     use:tippy={{
@@ -787,7 +787,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     </p>
   {/if}
   <!-- TODO DRY `VolumeThreshold`? Like `'V' + 'olumeThreshold'`? Same for other inputs. -->
-  <RangeSlider
+  <AdvancedRangeControl
     label="🔉 {getMessage('volumeThreshold')}"
     {...rangeInputSettingNameToAttrs('VolumeThreshold', settings)}
     bind:value={settings.volumeThreshold}
@@ -819,7 +819,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   <datalist id="sounded-speed-datalist">
     <option>1</option>
   </datalist>
-  <RangeSlider
+  <AdvancedRangeControl
     label="▶️ {getMessage('soundedSpeed')}"
     list="sounded-speed-datalist"
     fractionalDigits={2}
@@ -845,7 +845,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   />
   {/if}
   {#if settings.advancedMode}
-  <RangeSlider
+  <AdvancedRangeControl
     label="⏩ {getMessage('silenceSpeed')} ({silenceSpeedLabelClarification})"
     fractionalDigits={2}
     {...rangeInputSettingNameToAttrs('SilenceSpeedRaw', settings)}
@@ -879,7 +879,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       theme: tippyThemeMyTippyAndPreLine,
     }}
   />
-  <RangeSlider
+  <AdvancedRangeControl
     label="⏱️⬅️ {getMessage('marginBefore')}"
     {...rangeInputSettingNameToAttrs('MarginBefore', settings)}
     bind:value={settings.marginBefore}
@@ -902,7 +902,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       theme: tippyThemeMyTippyAndPreLine,
     }}
   />
-  <RangeSlider
+  <AdvancedRangeControl
     label="⏱️➡️ {getMessage('marginAfter')}"
     {...rangeInputSettingNameToAttrs('MarginAfter', settings)}
     bind:value={settings.marginAfter}

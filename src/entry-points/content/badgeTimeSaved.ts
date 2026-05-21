@@ -56,7 +56,7 @@ export async function startSendingTimeSavedMessagesForBadge(
   const timeSavedTracker = await timeSavedTrackerPromise
   const maybeSendTimeSavedInfo = () => {
     let timeSaved: string
-    // Time calculations from `TimeSaved.svelte`.
+    // Time calculations mirrored from the popup saved-time card.
     // TODO feat: an option to show speed compared to intrinsic speed,
     // or absolute value.
     switch (settings.timeSavedRepresentation) {
