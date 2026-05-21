@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tippyActionAsyncPreload as tippy } from "./tippyAction";
   import { getMessage } from "@/helpers";
-  import { TelemetryMessage } from "../content/AllMediaElementsController";
+  import type { TelemetryMessage } from "../content/AllMediaElementsController";
   import {
     HotkeyAction,
     HotkeyAction_INCREASE_VOLUME,

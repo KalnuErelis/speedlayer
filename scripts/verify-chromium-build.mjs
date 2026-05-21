@@ -24,6 +24,17 @@ for (const file of requiredFiles) {
   }
 }
 
+const popupHtml = fs.readFileSync(path.join(dist, "popup/popup.html"), "utf8");
+const popupMain = fs.readFileSync(path.join(dist, "popup/main.js"), "utf8");
+
+if (!popupHtml.includes('type="module"')) {
+  throw new Error("Popup HTML must load popup/main.js as a module");
+}
+
+if (popupMain.includes("new App(")) {
+  throw new Error("Popup build still contains legacy Svelte class-component mounting");
+}
+
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
 if (manifest.manifest_version !== 3) {

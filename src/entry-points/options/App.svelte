@@ -433,14 +433,16 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
           <div style="overflow-x: auto;">
             <table style="margin: 0.75rem 0;">
               <thead>
-                <th>{getMessage('input')}</th>
-                {#each [
-                  getMessage('min'),
-                  getMessage('step'),
-                  getMessage('max'),
-                ] as l}
-                  <th>{l}</th>
-                {/each}
+                <tr>
+                  <th>{getMessage('input')}</th>
+                  {#each [
+                    getMessage('min'),
+                    getMessage('step'),
+                    getMessage('max'),
+                  ] as l}
+                    <th>{l}</th>
+                  {/each}
+                </tr>
               </thead>
               <tbody>
                 {#each rangeInputSettingsNamesCapitalized as rangeInputSettingNameCapitalized}

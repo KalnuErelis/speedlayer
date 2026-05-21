@@ -60,11 +60,11 @@ module.exports = env => {
     // Taken from https://github.com/sveltejs/svelte-loader#usage
     resolve: {
       alias: {
-        svelte: path.resolve('node_modules', 'svelte/src/runtime'),
         '@': path.resolve(__dirname, 'src'),
       },
       extensions: ['.tsx', '.ts', '.mjs', '.js', '.svelte', '.json'],
       mainFields: ['svelte', 'browser', 'module', 'main'],
+      conditionNames: ['svelte', 'browser', 'import', 'module', 'default'],
     },
 
     module: {
@@ -83,6 +83,9 @@ module.exports = env => {
               preprocess: require('svelte-preprocess')(),
               compilerOptions: {
                 dev: process.env.NODE_ENV !== 'production',
+                compatibility: {
+                  componentApi: 4,
+                },
               },
               // TODO perf: `emitCss: true`, `ExtractTextPlugin`?
               // https://github.com/sveltejs/svelte-loader#usage
@@ -115,9 +118,9 @@ module.exports = env => {
       SilenceDetectorProcessor: './src/entry-points/content/SilenceDetector/SilenceDetectorProcessor.ts',
       VolumeFilterProcessor: './src/entry-points/content/VolumeFilter/VolumeFilterProcessor.ts',
 
-      popup: './src/entry-points/popup/main.ts',
       background: './src/entry-points/background/main.ts',
       options: './src/entry-points/options/main.ts',
+      ...(env.browser === 'gecko' ? { popup: './src/entry-points/popup/main.ts' } : {}),
 
       'local-file-player': './src/entry-points/local-file-player/main.ts',
     },
@@ -146,7 +149,7 @@ module.exports = env => {
     },
 
     plugins: [
-      new CleanWebpackPlugin(),
+      ...(process.env.NODE_ENV === 'production' ? [new CleanWebpackPlugin()] : []),
       definePlugin,
       // This is so dynamic import works in content scripts (but it affects all scripts).
       // TODO refactor: replace with `output.environment.dynamicImport = true` (which will act as

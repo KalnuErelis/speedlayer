@@ -19,7 +19,8 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
 
 <script lang="ts">
 import { createEventDispatcher } from 'svelte';
-import { Settings, ControllerKind_CLONING, ControllerKind_STRETCHING, } from '@/settings';
+import { ControllerKind_CLONING, ControllerKind_STRETCHING, } from '@/settings';
+import type { Settings } from '@/settings';
 import type { TelemetryMessage } from '@/entry-points/content/AllMediaElementsController';
 import { assertNever, getMessage } from '@/helpers';
 import { isMobile } from '@/helpers/isMobile';

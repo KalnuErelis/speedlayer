@@ -18,8 +18,10 @@
  * along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import App from './App.svelte';
+import { mount } from "svelte";
+import App from "./App.svelte";
+import "./popup.css";
 
-new App({
+mount(App, {
   target: document.body,
 });

@@ -21,15 +21,15 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   import { browserOrChrome } from '@/webextensions-api-browser-or-chrome';
   import { onDestroy } from 'svelte';
   import {
-    addOnStorageChangedListener, getSettings, setSettings, Settings, settingsChanges2NewValues,
+    addOnStorageChangedListener, getSettings, setSettings, settingsChanges2NewValues,
     ControllerKind_CLONING, ControllerKind_STRETCHING, changeAlgorithmAndMaybeRelatedSettings,
-    PopupAdjustableRangeInputsCapitalized,
     ControllerKind_ALWAYS_SOUNDED,
     OppositeDayMode_ON,
     OppositeDayMode_OFF,
     OppositeDayMode_HIDDEN_BY_USER,
     OppositeDayMode_UNDISCOVERED,
   } from '@/settings';
+  import type { PopupAdjustableRangeInputsCapitalized, Settings } from '@/settings';
   import { tippyActionAsyncPreload as tippy } from './tippyAction';
   import RangeSlider from './RangeSlider.svelte';
   import type { TelemetryMessage } from '@/entry-points/content/AllMediaElementsController';
@@ -56,9 +56,8 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     HotkeyAction_TOGGLE_MARGIN_AFTER,
     HotkeyAction_SET_MARGIN_AFTER,
     HotkeyAction_TOGGLE_PAUSE,
-    HotkeyBinding,
-    NonSettingsAction
   } from '@/hotkeys';
+  import type { HotkeyBinding, NonSettingsAction } from '@/hotkeys';
   import type createKeydownListener from './hotkeys';
   import throttle from 'lodash/throttle';
   import { assertDev, assertNever, getMessage } from '@/helpers';
