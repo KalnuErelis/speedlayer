@@ -22,6 +22,7 @@ export interface SegmentedFixture {
 
 export interface DetectorProfile {
   volumeThreshold: number;
+  maxSilenceVolumeThreshold?: number;
   minimumSilenceSeconds: number;
   marginBeforeSeconds: number;
   marginAfterSeconds: number;
@@ -84,12 +85,14 @@ export function detectSilenceRanges(
     sampleRate,
     profile.smoothingWindowSeconds ?? 0
   );
+  const maxSilenceVolumeThreshold =
+    profile.maxSilenceVolumeThreshold ?? profile.volumeThreshold;
   const ranges: SilenceRange[] = [];
   let quietRunStartSample: number | undefined;
   let activeSilenceStartSeconds: number | undefined;
 
   for (let sampleIndex = 0; sampleIndex < volumes.length; sampleIndex += 1) {
-    const isLoud = volumes[sampleIndex] >= profile.volumeThreshold;
+    const isLoud = volumes[sampleIndex] >= maxSilenceVolumeThreshold;
 
     if (isLoud) {
       if (activeSilenceStartSeconds != undefined) {

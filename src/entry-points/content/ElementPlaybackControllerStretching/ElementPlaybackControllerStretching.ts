@@ -35,6 +35,7 @@ import {
 import type { StretchInfo, AudioContextTime, UnixTime, TimeDelta, MediaTime } from '@/helpers';
 import type { Settings as ExtensionSettings } from '@/settings';
 import { ControllerKind } from '@/settings';
+import { getMusicAwareSilenceVolumeThreshold } from '@/helpers/musicAwareSilenceThreshold';
 import type StretcherAndPitchCorrectorNode from './StretcherAndPitchCorrectorNode';
 import { assertDev, SpeedName } from '@/helpers';
 import SilenceDetectorNode, { SilenceDetectorEventType, SilenceDetectorMessage }
@@ -533,6 +534,8 @@ export default class Controller {
     }
 
     this._silenceDetectorNode.volumeThreshold = this.settings.volumeThreshold;
+    this._silenceDetectorNode.maxSilenceVolumeThreshold =
+      getMusicAwareSilenceVolumeThreshold(this.settings.volumeThreshold);
     this._silenceDetectorNode.durationThreshold = this._getSilenceDetectorNodeDurationThreshold();
     if (this.isStretcherEnabled()) {
       this._lookahead.delayTime.value = getOptimalLookaheadDelay(

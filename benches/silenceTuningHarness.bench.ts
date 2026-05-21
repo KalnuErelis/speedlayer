@@ -4,12 +4,14 @@ import {
   synthesizeSegmentedFixture,
   type DetectorProfile,
 } from "../src/helpers/silenceTuningHarness";
+import { getMusicAwareSilenceVolumeThreshold } from "../src/helpers/musicAwareSilenceThreshold";
 import { simpleSliderDefaultValue, simpleSliderToSettings } from "../src/settings/simpleSliderTuning";
 
 const tunedSettings = simpleSliderToSettings(simpleSliderDefaultValue);
 
 const profile: DetectorProfile = {
   volumeThreshold: tunedSettings.volumeThreshold,
+  maxSilenceVolumeThreshold: getMusicAwareSilenceVolumeThreshold(tunedSettings.volumeThreshold),
   minimumSilenceSeconds: tunedSettings.marginAfter,
   marginBeforeSeconds: 0,
   marginAfterSeconds: tunedSettings.marginAfter,

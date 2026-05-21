@@ -28,7 +28,7 @@ let devErrorShown = false;
 
 /**
  * Takes volume data (e.g. from `VolumeFilter`) as input. Sends `SILENCE_START` when there has been silence for the
- * last `durationThreshold`, or `SILENCE_END` when a single sample above `volumeThreshold` is found.
+ * last `durationThreshold`, or `SILENCE_END` when a single sample above `maxSilenceVolumeThreshold` is found.
  */
 class SilenceDetectorProcessor extends WorkaroundAudioWorkletProcessor {
   _lastLoudSampleInd: AudioContextTime;
@@ -59,6 +59,13 @@ class SilenceDetectorProcessor extends WorkaroundAudioWorkletProcessor {
         minValue: 0,
         automationRate: 'k-rate',
       },
+      {
+        name: 'maxSilenceVolumeThreshold',
+        defaultValue: 0.10,
+        minValue: 0,
+        maxValue: 1,
+        automationRate: 'k-rate',
+      },
     ];
   }
 
@@ -69,6 +76,7 @@ class SilenceDetectorProcessor extends WorkaroundAudioWorkletProcessor {
 
   process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>) {
     const volumeThreshold = parameters.volumeThreshold[0];
+    const maxSilenceVolumeThreshold = parameters.maxSilenceVolumeThreshold?.[0] ?? volumeThreshold;
     const input = inputs[0];
     // TODO perf: can we stop checking this every time after we get an input connected?
     if (input.length === 0) {
@@ -98,7 +106,7 @@ class SilenceDetectorProcessor extends WorkaroundAudioWorkletProcessor {
     for (let sampleI = 0; sampleI < numSamples; sampleI++) {
       const sampleIGlobal = currentFrame + sampleI;
       const sample = channel[sampleI];
-      const sampleIsLoud = sample >= volumeThreshold;
+      const sampleIsLoud = sample >= maxSilenceVolumeThreshold;
       if (sampleIsLoud) {
         this._lastLoudSampleInd = sampleIGlobal;
         if (this._lastEmitedEventIsSilenceStartEvent) {

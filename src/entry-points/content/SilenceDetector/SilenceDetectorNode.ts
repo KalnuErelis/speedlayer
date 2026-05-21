@@ -22,6 +22,7 @@ export * from './SilenceDetectorMessage';
 
 export default class SilenceDetectorNode extends AudioWorkletNode {
   volumeThresholdParam: AudioParam;
+  maxSilenceVolumeThresholdParam: AudioParam;
   durationThresholdParam: AudioParam;
   constructor(context: AudioContext, durationThreshold: number) {
     super(context, 'SilenceDetectorProcessor', {
@@ -38,6 +39,8 @@ export default class SilenceDetectorNode extends AudioWorkletNode {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.volumeThresholdParam = this.parameters.get('volumeThreshold')!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    this.maxSilenceVolumeThresholdParam = this.parameters.get('maxSilenceVolumeThreshold')!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.durationThresholdParam = this.parameters.get('durationThreshold')!;
     // TODO a workaround. Otherwise when you create an instance of `SilenceDetectorNode`, it appears to not have
     // the below `volumeThreshold` & `durationThreshold` setters.
@@ -48,6 +51,9 @@ export default class SilenceDetectorNode extends AudioWorkletNode {
   }
   set volumeThreshold(v: number) {
     this.volumeThresholdParam.value = v;
+  }
+  set maxSilenceVolumeThreshold(v: number) {
+    this.maxSilenceVolumeThresholdParam.value = v;
   }
   get durationThreshold() {
     return this.durationThresholdParam.value;

@@ -21,6 +21,7 @@
 import { browserOrChrome } from '@/webextensions-api-browser-or-chrome';
 import { Settings as ExtensionSettings } from '@/settings';
 import { assertDev, clamp, maxPlaybackRate, MediaTime } from '@/helpers';
+import { getMusicAwareSilenceVolumeThreshold } from '@/helpers/musicAwareSilenceThreshold';
 import { destroyAudioWorkletNode, getRealtimeMargin } from '@/entry-points/content/helpers';
 import once from 'lodash/once';
 import throttle from 'lodash/throttle';
@@ -235,6 +236,7 @@ export default class Lookahead {
     }));
     toAwait.push(silenceDetectorP.then(silenceDetector => {
       silenceDetector.volumeThreshold = this.settings.volumeThreshold;
+      silenceDetector.maxSilenceVolumeThreshold = getMusicAwareSilenceVolumeThreshold(this.settings.volumeThreshold);
 
       silenceDetector.port.onmessage = msg => {
         const [eventType, eventTimeAudioContextTime] = msg.data as SilenceDetectorMessage;

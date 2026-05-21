@@ -4,6 +4,7 @@ import {
   evaluateSilenceDetection,
   synthesizeSegmentedFixture,
 } from "../src/helpers/silenceTuningHarness";
+import { getMusicAwareSilenceVolumeThreshold } from "../src/helpers/musicAwareSilenceThreshold";
 
 describe("silence tuning harness", () => {
   test("synthesizes expected silence ranges from labeled segments", () => {
@@ -41,6 +42,50 @@ describe("silence tuning harness", () => {
 
     expect(ranges).toEqual([
       { startSeconds: 1.05, endSeconds: 1.93 },
+    ]);
+  });
+
+  test("treats quiet music beds as sounded when a silence floor is configured", () => {
+    const fixture = synthesizeSegmentedFixture({
+      sampleRate: 1000,
+      segments: [
+        { label: "speech", durationSeconds: 1, amplitude: 0.20 },
+        { label: "silence", durationSeconds: 1, amplitude: 0.006 },
+        { label: "speech", durationSeconds: 1, amplitude: 0.20 },
+      ],
+    });
+
+    const ranges = detectSilenceRanges(fixture.samples, fixture.sampleRate, {
+      volumeThreshold: 0.01,
+      maxSilenceVolumeThreshold: getMusicAwareSilenceVolumeThreshold(0.01),
+      minimumSilenceSeconds: 0.1,
+      marginBeforeSeconds: 0,
+      marginAfterSeconds: 0,
+    });
+
+    expect(ranges).toEqual([]);
+  });
+
+  test("still detects true near-silence below the silence floor", () => {
+    const fixture = synthesizeSegmentedFixture({
+      sampleRate: 1000,
+      segments: [
+        { label: "speech", durationSeconds: 1, amplitude: 0.20 },
+        { label: "silence", durationSeconds: 1, amplitude: 0.001 },
+        { label: "speech", durationSeconds: 1, amplitude: 0.20 },
+      ],
+    });
+
+    const ranges = detectSilenceRanges(fixture.samples, fixture.sampleRate, {
+      volumeThreshold: 0.01,
+      maxSilenceVolumeThreshold: getMusicAwareSilenceVolumeThreshold(0.01),
+      minimumSilenceSeconds: 0.1,
+      marginBeforeSeconds: 0,
+      marginAfterSeconds: 0,
+    });
+
+    expect(ranges).toEqual([
+      { startSeconds: 1, endSeconds: 2 },
     ]);
   });
 
