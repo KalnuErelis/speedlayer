@@ -10,15 +10,18 @@ Add a calm, playful-productivity layer to SpeedLayer that makes saved time feel 
 
 The first gamification feature is a weekly time-saved scorecard with lifetime milestones. It should feel useful first and fun second.
 
+The growth extension of this concept is a public opt-in global leaderboard on a SpeedLayer landing page. The extension remains private by default; leaderboard participation is a separate explicit action.
+
 ## Non-Goals
 
 - No XP system.
-- No leaderboards.
 - No streaks.
-- No social sharing.
 - No page overlay celebration.
 - No autoplay animation over the video.
 - No milestone types other than time saved in v1.
+- No automatic public sharing.
+- No public leaderboard participation without explicit opt-in.
+- No user accounts or backend requirement for the first local scorecard implementation.
 
 ## User Experience
 
@@ -80,6 +83,35 @@ New weekly recap state should track enough daily aggregates to compute:
 
 Store only local extension state. Do not transmit recap or milestone data.
 
+## Public Leaderboard Growth Loop
+
+The public leaderboard is a landing-page and growth feature, not a default extension behavior.
+
+Principles:
+
+- Private by default.
+- Users appear publicly only after explicit opt-in.
+- Opt-in requires choosing a public handle.
+- Published stats should be limited to weekly saved-time totals and rank.
+- The public page should show a weekly global leaderboard, aggregate saved-time proof, and an install CTA.
+- Users should be able to leave the leaderboard and stop future publishing.
+
+Example public page:
+
+```text
+Weekly leaderboard
+1. @studymax - 9h 42m
+2. @coursegrind - 8h 05m
+3. @fastlearner - 7h 31m
+
+Only opt-in profiles appear here.
+Install SpeedLayer
+```
+
+This feature requires a later implementation plan because it introduces identity, server storage, abuse controls, anti-cheat decisions, and privacy-policy updates.
+
+The local weekly scorecard can include a "Join leaderboard" entry point, but it should be hidden or disabled until the public leaderboard infrastructure exists.
+
 ## Display Rules
 
 The scorecard should be visible in the popup without requiring a separate settings page.
@@ -101,7 +133,7 @@ Tone should be concise and adult:
 
 - Good: `43 min saved`, `Next milestone: 2h saved`
 - Good: `Best day: Tuesday, 18 min`
-- Avoid: XP, coins, ranks, competitive copy, guilt, fake urgency
+- Avoid in the local scorecard: XP, coins, ranks, competitive copy, guilt, fake urgency
 - Avoid: jokey labels in v1
 
 The feature should make the extension feel rewarding, not needy.
@@ -125,8 +157,18 @@ Minimum verification for implementation:
 - Browser/manual test: no page overlay appears when a milestone is crossed.
 - Regression test or manual proof that existing time-saved values still update.
 
+Additional verification before launching the opt-in leaderboard:
+
+- User can use SpeedLayer without joining the leaderboard.
+- User must explicitly opt in before any stat is published.
+- User can verify the public handle and saved-time value before publishing.
+- User can leave the leaderboard.
+- Privacy policy states exactly what is published and stored.
+
 ## Open Decisions
 
-No product decisions remain open for v1.
+No product decisions remain open for the local weekly scorecard.
 
-Implementation may choose the exact internal storage shape, but it must preserve the behavior described above.
+The opt-in global leaderboard is approved as product direction, but backend, identity, anti-cheat, and moderation details remain open for a later design.
+
+Implementation may choose the exact internal storage shape for the local scorecard, but it must preserve the behavior described above.
