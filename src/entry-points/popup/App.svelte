@@ -542,20 +542,21 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     onChange={onEnabledChange}
   />
 
+  <SavedTimeCard
+    slot="display"
+    weeklyLabel={viewState.savedTime.weeklyLabel}
+    lifetimeLabel={viewState.savedTime.lifetimeLabel}
+    nextMilestoneLabel={viewState.savedTime.nextMilestoneLabel}
+    weeklyText="saved"
+    lifetimeText="total"
+    nextText="next"
+    ariaLabel={getMessage('timeSaved')}
+  />
+
   <SpeedReadout
     speedLabel={viewState.speedLabel}
     statusLabel={getMediaStatusLabel()}
     ariaLabel={getMessage('soundedSpeed')}
-  />
-
-  <SavedTimeCard
-    weeklyLabel={viewState.savedTime.weeklyLabel}
-    lifetimeLabel={viewState.savedTime.lifetimeLabel}
-    nextMilestoneLabel={viewState.savedTime.nextMilestoneLabel}
-    weeklyText={getMessage('timeSaved')}
-    lifetimeText={getMessage('timeSavedSinceInstallation')}
-    nextText={getMessage('more')}
-    ariaLabel={getMessage('timeSaved')}
   />
 
   {#if !connected}
@@ -910,9 +911,9 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   <svelte:fragment slot="footer">
     <div class="sl-popup__footer-actions">
       {#if settings.popupAlwaysShowOpenLocalFileLink}
-        <IconButton label={getMessage('openLocalFile')} icon="📂" onClick={openLocalFilePlayer} />
+        <IconButton label={getMessage('openLocalFile')} icon="FILE" onClick={openLocalFilePlayer} />
       {/if}
-      <IconButton label={getMessage('popupAdvancedMode')} icon="⚙️" onClick={() => settingsSheetOpen = true} />
+      <IconButton label={getMessage('popupAdvancedMode')} icon="EQ" onClick={() => settingsSheetOpen = true} />
     </div>
   </svelte:fragment>
 </PopupShell>

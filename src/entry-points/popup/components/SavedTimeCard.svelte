@@ -8,16 +8,12 @@
   export let ariaLabel: string;
 </script>
 
-<section class="sl-card" aria-label={ariaLabel}>
-  <div>
-    <span class="sl-muted">{weeklyText}</span>
-    <strong>{weeklyLabel}</strong>
-  </div>
-  <div class="sl-card__row">
+<section class="sl-saved-display" aria-label={ariaLabel}>
+  <span class="sl-saved-display__label">{weeklyText}</span>
+  <strong class="sl-saved-display__value">{weeklyLabel}</strong>
+  <div class="sl-saved-display__stats">
     <span>{lifetimeText}</span>
     <span>{lifetimeLabel}</span>
-  </div>
-  <div class="sl-card__row">
     <span>{nextText}</span>
     <span>{nextMilestoneLabel}</span>
   </div>
