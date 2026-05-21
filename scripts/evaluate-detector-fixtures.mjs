@@ -3,13 +3,19 @@ import {
   evaluateSilenceDetection,
   synthesizeSegmentedFixture,
 } from "../src/helpers/silenceTuningHarness.ts";
+import {
+  simpleSliderDefaultValue,
+  simpleSliderToSettings,
+} from "../src/settings/simpleSliderTuning.ts";
+
+const tunedSettings = simpleSliderToSettings(simpleSliderDefaultValue);
 
 const baselineProfile = {
-  volumeThreshold: 0.00595,
-  minimumSilenceSeconds: 0.1,
+  volumeThreshold: tunedSettings.volumeThreshold,
+  minimumSilenceSeconds: tunedSettings.marginAfter,
   marginBeforeSeconds: 0,
-  marginAfterSeconds: 0.164,
-  smoothingWindowSeconds: 0.03,
+  marginAfterSeconds: tunedSettings.marginAfter,
+  smoothingWindowSeconds: 0.02,
 };
 
 const fixtureInputs = [
@@ -59,7 +65,8 @@ const fixtureInputs = [
   },
 ];
 
-console.log("Detector tuning baseline");
+console.log("Detector tuning profile");
+console.log(`simpleSlider=${simpleSliderDefaultValue}`);
 console.log(`threshold=${baselineProfile.volumeThreshold}`);
 console.log(
   `minimumSilence=${baselineProfile.minimumSilenceSeconds}s margins=${baselineProfile.marginAfterSeconds}s/${baselineProfile.marginBeforeSeconds}s`

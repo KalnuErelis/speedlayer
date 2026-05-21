@@ -39,6 +39,7 @@ import {
 } from "@/settings";
 import type { Settings } from '@/settings';
 import { defaultSettings } from '@/settings';
+import { getSpeedLayerEngineTuningStorageUpdate } from '@/settings/speedLayerEngineTuningMigration';
 import runRequiredMigrations from './migrations/runRequiredMigrations';
 
 // Remember that we need to attach the event listeners at the top level since it's a
@@ -122,7 +123,15 @@ let mayThisOnStorageChangeEventBeCausedByPostInstallScriptP: Promise<boolean> | 
   }));
 })();
 
-const settingsP = postInstallStorageChangesDoneP.then(() => getSettings());
+const speedLayerEngineTuningP = postInstallStorageChangesDoneP.then(async () => {
+  const stored = await storage.get();
+  const update = getSpeedLayerEngineTuningStorageUpdate(stored);
+  if (update) {
+    await storage.set(update);
+  }
+});
+
+const settingsP = speedLayerEngineTuningP.then(() => getSettings());
 
 const initIconAndBadgeP = settingsP.then(s => initIconAndBadge(s));
 settingsP.then(s => {

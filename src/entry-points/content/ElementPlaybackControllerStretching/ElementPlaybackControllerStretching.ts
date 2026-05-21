@@ -201,7 +201,7 @@ export default class Controller {
     const addWorkletProcessor = (url: string) =>
       audioContext.audioWorklet.addModule(browserOrChrome.runtime.getURL(url));
 
-    const volumeFilterSmoothingWindowLength = 0.03; // TODO make a setting out of it.
+    const volumeFilterSmoothingWindowLength = 0.02; // TODO make a setting out of it.
     const volumeFilterProcessorP = addWorkletProcessor('content/VolumeFilterProcessor.js');
     const volumeFilterP = volumeFilterProcessorP.then(() => {
       const volumeFilter = new VolumeFilterNode(

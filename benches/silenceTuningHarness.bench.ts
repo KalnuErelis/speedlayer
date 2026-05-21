@@ -4,13 +4,16 @@ import {
   synthesizeSegmentedFixture,
   type DetectorProfile,
 } from "../src/helpers/silenceTuningHarness";
+import { simpleSliderDefaultValue, simpleSliderToSettings } from "../src/settings/simpleSliderTuning";
+
+const tunedSettings = simpleSliderToSettings(simpleSliderDefaultValue);
 
 const profile: DetectorProfile = {
-  volumeThreshold: 0.00595,
-  minimumSilenceSeconds: 0.1,
+  volumeThreshold: tunedSettings.volumeThreshold,
+  minimumSilenceSeconds: tunedSettings.marginAfter,
   marginBeforeSeconds: 0,
-  marginAfterSeconds: 0.164,
-  smoothingWindowSeconds: 0.03,
+  marginAfterSeconds: tunedSettings.marginAfter,
+  smoothingWindowSeconds: 0.02,
 };
 
 const fixtures = [

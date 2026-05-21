@@ -26,29 +26,22 @@ import { getGeckoLikelyMaxNonMutedPlaybackRate } from '@/helpers';
 import { browserHasAudioDesyncBug } from '@/helpers/browserHasAudioDesyncBug';
 import { isMobile } from '@/helpers/isMobile';
 import { emptyWeeklyTimeSavedState } from '@/helpers/weeklyScorecard';
+import { simpleSliderDefaultValue, simpleSliderToSettings } from './simpleSliderTuning';
 
-// Start with a below-middle value to let the user get a feel
-// for how the extension behaves without being too disruptive,
-// and then let them crank it up if they feel like it.
-// The value of 50 should be optimal for most users (based on my feeling).
-const simpleSliderDefaultVal = 33;
+// Start in the middle: noticeable on lectures, still guarded enough to avoid clipping speech.
+const simpleSliderDefaultVal = simpleSliderDefaultValue;
 
 const ElementPlaybackControllerStretchingSpecificDefaults = {
-  // If you decide to change these values,
-  // remember to also update them in `popup/App.svelte`.
-  volumeThreshold: 0.001 + simpleSliderDefaultVal * 0.00015,
+  ...simpleSliderToSettings(simpleSliderDefaultVal),
   marginBefore: 0,
-  marginAfter: 0.03 + 0.0020 * (100 - simpleSliderDefaultVal),
 } as const;
 
 export const defaultSettings: Readonly<Settings> = {
   volumeThreshold: ElementPlaybackControllerStretchingSpecificDefaults.volumeThreshold,
   previousVolumeThreshold:  ElementPlaybackControllerStretchingSpecificDefaults.volumeThreshold,
   silenceSpeedSpecificationMethod: 'relativeToSoundedSpeed',
-  // If you decide to change these values,
-  // remember to also update them in `popup/App.svelte`.
-  silenceSpeedRaw:         1.5 + simpleSliderDefaultVal * 0.020,
-  previousSilenceSpeedRaw: 1.5 + simpleSliderDefaultVal * 0.020,
+  silenceSpeedRaw:         ElementPlaybackControllerStretchingSpecificDefaults.silenceSpeedRaw,
+  previousSilenceSpeedRaw: ElementPlaybackControllerStretchingSpecificDefaults.silenceSpeedRaw,
   // Argument for `soundedSpeed !== 1`:
   // * It reminds the user that the extension is enabled, so he's not confused by media getting seeked seemingly
   // randomly.
