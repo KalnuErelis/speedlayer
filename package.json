@@ -47,7 +47,6 @@
     "./src/content/VolumeFilter/VolumeFilterProcessor.ts"
   ],
   "dependencies": {
-    "@wofwca/smoothie": "^1.36.2-rc0",
     "hh-mm-ss": "^1.2.0",
     "lodash": "^4.17.21",
     "tippy.js": "^6.3.7",

@@ -285,3 +285,12 @@ a {
   padding: 10px;
   color: #dce5df;
 }
+
+.sl-timeline {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 8px;
+  background: #0b100e;
+  cursor: pointer;
+}
