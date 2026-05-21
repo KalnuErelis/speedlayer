@@ -23,11 +23,10 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   // TODO get rid of svelte?
   import { getMessage } from '@/helpers';
 
-  const defaultDocumentTitle = 'Jump Cutter: local video player'; // TODO translate?
+  const defaultDocumentTitle = 'SpeedLayer: local video player'; // TODO translate?
   document.title = defaultDocumentTitle;
 
-  type HTMLInputElementTypeFile = HTMLInputElement & { files: NonNullable<HTMLInputElement['files']> };
-  let inputEl: HTMLInputElementTypeFile;
+  let inputEl: HTMLInputElement;
   let videoEl: HTMLVideoElement;
   let objectURL: ReturnType<typeof URL.createObjectURL> | undefined;
 
@@ -35,16 +34,17 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   // Need this because Svelte's reactivity doesn't appear to work properly with `FileList`.
   let files: File[] = [];
   async function onInputChange() {
-    const numFiles = inputEl.files.length;
+    const selectedFiles = inputEl.files;
+    const numFiles = selectedFiles?.length ?? 0;
     if (numFiles <= 0) {
       // In case it was un-selected (I think that's the only case when it can happen).
       document.title = defaultDocumentTitle;
       return;
     }
 
-    files = [...files, ...inputEl.files];
+    files = [...files, ...selectedFiles!];
 
-    const oldFilesLength = files.length - inputEl.files.length;
+    const oldFilesLength = files.length - selectedFiles!.length;
     const firstAddedElementInd = (oldFilesLength - 1) + 1;
 
     playFile(firstAddedElementInd);
@@ -53,7 +53,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     currFileInd = ind;
     const file = files[ind];
     // TODO handle `!video.canPlayType(file.type)`?
-    document.title = file.name + ' – Jump Cutter';
+    document.title = file.name + ' – SpeedLayer';
     // For better performance. https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL#Memory_management
     // In the future it should be possible to `v.srcObject = file`:
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/srcObject

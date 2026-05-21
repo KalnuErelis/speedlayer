@@ -1,17 +1,24 @@
 {
-  "name": "jump-cutter",
+  "name": "speedlayer",
+  "version": "0.1.0-alpha.0",
+  "license": "AGPL-3.0-or-later",
   "author": {
-    "name": "WofWca",
-    "email": "wofwca@protonmail.com"
+    "name": "Jaunius Kadunas"
   },
+  "contributors": [
+    {
+      "name": "WofWca",
+      "email": "wofwca@protonmail.com"
+    }
+  ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/WofWca/jumpcutter.git"
+    "url": "git+https://github.com/KalnuErelis/speedlayer.git"
   },
   "bugs": {
-    "url": "https://github.com/WofWca/jumpcutter/issues"
+    "url": "https://github.com/KalnuErelis/speedlayer/issues"
   },
-  "homepage": "https://github.com/WofWca/jumpcutter#readme",
+  "homepage": "https://github.com/KalnuErelis/speedlayer#readme",
   "scripts": {
     "_abstract-build": "yarn lint && NODE_ENV=production webpack --mode=production",
     "build:gecko": "yarn run _abstract-build --env browser=gecko",
@@ -23,7 +30,9 @@
     "_abstract-serve": "webpack --mode=development --watch",
     "serve:gecko": "yarn run _abstract-serve --env browser=gecko",
     "serve:chromium": "yarn run _abstract-serve --env browser=chromium",
-    "lint": "eslint ./src/"
+    "serve:manual-test": "node scripts/serve-manual-test.mjs",
+    "lint": "eslint ./src/",
+    "verify:chromium": "node scripts/verify-chromium-build.mjs"
   },
   "sideEffects": [
     "./src/{content,popup,background,options,local-file-player}/main.ts",

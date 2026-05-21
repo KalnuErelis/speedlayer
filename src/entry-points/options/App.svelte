@@ -202,13 +202,13 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     }
 
     const params = new URLSearchParams({
-      subject: 'Jump Cutter',
+      subject: 'SpeedLayer',
       // TODO improvement: i18n?
       body: `Debug info (you can remove this):`
-        + `\nJump Cutter version: ${browserOrChrome.runtime.getManifest().version}`
+        + `\nSpeedLayer version: ${browserOrChrome.runtime.getManifest().version}`
         + `\nLanguage: ${browserOrChrome.i18n.getUILanguage()}`
         + `\nSystem info: ${navigator.userAgent}`
-        + `\nJump Cutter settings:`
+        + `\nSpeedLayer settings:`
         + '\n\n```json'
         // Why `filterSettings`? Because if the URL gets too long,
         // the app might not open it properly.
