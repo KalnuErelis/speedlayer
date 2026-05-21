@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createPopupViewState } from "../src/entry-points/popup/state/popupViewState";
+import { createPopupViewState } from "@/entry-points/popup/state/popupViewState";
 
 describe("createPopupViewState", () => {
   it("shows a no-video state before telemetry arrives", () => {
@@ -70,6 +70,48 @@ describe("createPopupViewState", () => {
       connectionFailed: true,
     })).toMatchObject({
       mediaStatus: "unavailable",
+    });
+  });
+
+  it("gives connection failure precedence over stale telemetry", () => {
+    expect(createPopupViewState({
+      settings: {
+        enabled: true,
+        simpleSlider: 50,
+        soundedSpeed: 1.5,
+        weeklyTimeSavedComparedToSoundedSpeed: 0,
+        lifetimeTimeSavedComparedToSoundedSpeed: 0,
+        timeSavedLastSeenLifetimeMilestoneSeconds: 0,
+      },
+      latestTelemetryRecord: {
+        elementVolume: 0.2,
+        inputVolume: 0.2,
+        soundedSpeed: 1.2,
+      },
+      connected: true,
+      connectionFailed: true,
+    })).toMatchObject({
+      mediaStatus: "unavailable",
+      speedLabel: "1.2x",
+    });
+  });
+
+  it("shows loading while connected before telemetry arrives", () => {
+    expect(createPopupViewState({
+      settings: {
+        enabled: true,
+        simpleSlider: 50,
+        soundedSpeed: 2,
+        weeklyTimeSavedComparedToSoundedSpeed: 0,
+        lifetimeTimeSavedComparedToSoundedSpeed: 0,
+        timeSavedLastSeenLifetimeMilestoneSeconds: 0,
+      },
+      latestTelemetryRecord: undefined,
+      connected: true,
+      connectionFailed: false,
+    })).toMatchObject({
+      mediaStatus: "loading",
+      speedLabel: "2x",
     });
   });
 });
