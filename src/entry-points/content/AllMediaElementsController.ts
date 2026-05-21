@@ -496,6 +496,15 @@ export default class AllMediaElementsController {
       );
       onDetach(() => timeSavedTracker.destroy());
 
+      const { startSavedSecondsTicker } = await import(
+        /* webpackExports: ['startSavedSecondsTicker'] */
+        './savedSecondsTicker'
+      );
+      startSavedSecondsTicker(
+        () => timeSavedTracker.timeSavedData.timeSavedComparedToSoundedSpeed,
+        onDetach
+      );
+
       onSilenceSkippingSeek1 =
         timeSavedTracker.onSilenceSkippingSeek.bind(timeSavedTracker);
 

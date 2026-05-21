@@ -1,5 +1,6 @@
 <script lang="ts">
   export let savedLabel: string;
+  export let currentVideoLabel: string;
   export let weeklyBoostLabel: string;
   export let levelLabel: string;
   export let progressPercent: number;
@@ -29,6 +30,8 @@
     ></span>
   </div>
   <div class="sl-saved-display__stats">
+    <span>this video</span>
+    <span>{currentVideoLabel}</span>
     <span>{weeklyText}</span>
     <span>{weeklyBoostLabel}</span>
     <span>{progressText}</span>

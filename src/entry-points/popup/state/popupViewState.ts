@@ -22,6 +22,9 @@ export type PopupViewStateInput = {
     soundedSpeed?: number;
     elementVolume?: number;
     inputVolume?: number;
+    sessionTimeSaved?: {
+      timeSavedComparedToSoundedSpeed: number;
+    };
     lifetimeTimeSaved?: {
       timeSavedComparedToSoundedSpeed: number;
     };
@@ -38,6 +41,7 @@ export type PopupViewState = {
   simpleSlider: number;
   savedTime: {
     savedLabel: string;
+    currentVideoLabel: string;
     weeklyLabel: string;
     weeklyBoostLabel: string;
     lifetimeLabel: string;
@@ -63,6 +67,10 @@ export function createPopupViewState(input: PopupViewStateInput): PopupViewState
       ?? settings.lifetimeTimeSavedComparedToSoundedSpeed
   );
   const weeklySeconds = Math.max(0, settings.weeklyTimeSavedComparedToSoundedSpeed);
+  const currentVideoSeconds = Math.max(
+    0,
+    input.latestTelemetryRecord?.sessionTimeSaved?.timeSavedComparedToSoundedSpeed ?? 0
+  );
   const previousMilestoneSeconds = getPreviousMilestoneSeconds(lifetimeSeconds);
   const nextMilestoneSeconds = getNextMilestoneSeconds(lifetimeSeconds);
   const level = getSavedTimeLevel(lifetimeSeconds);
@@ -84,6 +92,7 @@ export function createPopupViewState(input: PopupViewStateInput): PopupViewState
     simpleSlider: settings.simpleSlider,
     savedTime: {
       savedLabel: formatSavedTime(lifetimeSeconds),
+      currentVideoLabel: formatSavedTime(currentVideoSeconds),
       weeklyLabel: formatSavedTime(weeklySeconds),
       weeklyBoostLabel: `+${formatSavedTime(weeklySeconds)}`,
       lifetimeLabel: formatSavedTime(lifetimeSeconds),

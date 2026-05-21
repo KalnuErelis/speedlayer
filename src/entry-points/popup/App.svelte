@@ -556,6 +556,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   <SavedTimeCard
     slot="display"
     savedLabel={viewState.savedTime.savedLabel}
+    currentVideoLabel={viewState.savedTime.currentVideoLabel}
     weeklyBoostLabel={viewState.savedTime.weeklyBoostLabel}
     levelLabel={viewState.savedTime.levelLabel}
     progressPercent={viewState.savedTime.progressPercent}

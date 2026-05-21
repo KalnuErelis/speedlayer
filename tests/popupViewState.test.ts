@@ -24,11 +24,12 @@ describe("createPopupViewState", () => {
         savedLabel: "60.000s",
         weeklyBoostLabel: "+0.000s",
         lifetimeLabel: "60.000s",
-        levelLabel: "Level 1",
-        nextLevelLabel: "Level 2",
-        nextMilestoneLabel: "900.000s",
-        progressPercent: 6.67,
-        toNextLevelLabel: "840.000s to Level 2",
+        currentVideoLabel: "0.000s",
+        levelLabel: "Level 2",
+        nextLevelLabel: "Level 3",
+        nextMilestoneLabel: "300.000s",
+        progressPercent: 0,
+        toNextLevelLabel: "240.000s to Level 3",
       },
     });
   });
@@ -48,6 +49,9 @@ describe("createPopupViewState", () => {
         elementVolume: 0.2,
         inputVolume: 0.2,
         soundedSpeed: 1.75,
+        sessionTimeSaved: {
+          timeSavedComparedToSoundedSpeed: 42.813,
+        },
       },
       connected: true,
       connectionFailed: false,
@@ -56,13 +60,14 @@ describe("createPopupViewState", () => {
       speedLabel: "1.75x",
       savedTime: {
         savedLabel: "3661.000s",
+        currentVideoLabel: "42.813s",
         weeklyBoostLabel: "+125.000s",
         lifetimeLabel: "3661.000s",
-        levelLabel: "Level 3",
-        nextLevelLabel: "Level 4",
-        nextMilestoneLabel: "7200.000s",
-        progressPercent: 1.69,
-        toNextLevelLabel: "3539.000s to Level 4",
+        levelLabel: "Level 6",
+        nextLevelLabel: "Level 7",
+        nextMilestoneLabel: "86400.000s",
+        progressPercent: 0.07,
+        toNextLevelLabel: "82739.000s to Level 7",
       },
     });
   });
@@ -82,6 +87,9 @@ describe("createPopupViewState", () => {
         elementVolume: 0.2,
         inputVolume: 0.2,
         soundedSpeed: 1.75,
+        sessionTimeSaved: {
+          timeSavedComparedToSoundedSpeed: 12.345,
+        },
         lifetimeTimeSaved: {
           timeSavedComparedToSoundedSpeed: 3661.234,
         },
@@ -91,8 +99,9 @@ describe("createPopupViewState", () => {
     })).toMatchObject({
       savedTime: {
         savedLabel: "3661.234s",
+        currentVideoLabel: "12.345s",
         lifetimeLabel: "3661.234s",
-        toNextLevelLabel: "3538.766s to Level 4",
+        toNextLevelLabel: "82738.766s to Level 7",
       },
     });
   });
