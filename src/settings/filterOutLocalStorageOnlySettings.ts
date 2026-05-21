@@ -18,7 +18,8 @@
  * along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { localStorageOnlyKeys, Settings } from './';
+import type { Settings } from './';
+import { localStorageOnlyKeys } from './localStorageOnlyKeys';
 
 export function filterOutLocalStorageOnlySettings(values: Partial<Settings>): Partial<Settings> {
   const toReturn: typeof values = {};

@@ -20,4 +20,7 @@
 
 import type { Settings } from "./";
 
-export const localStorageOnlyKeys: Readonly<Array<keyof Settings>> = ['__lastHandledUpdateToVersion'] as const;
+export const localStorageOnlyKeys: Readonly<Array<keyof Settings>> = [
+  '__lastHandledUpdateToVersion',
+  'videoTimeSavedLeaderboard',
+] as const;
