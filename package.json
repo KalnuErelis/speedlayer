@@ -38,6 +38,7 @@
     "tone": "~14.7.77"
   },
   "devDependencies": {
+    "@codspeed/vitest-plugin": "^5.4.0",
     "@types/chrome": "^0.0.268",
     "@types/firefox-webext-browser": "^120.0.3",
     "@types/hh-mm-ss": "^1.2.3",
@@ -57,6 +58,7 @@
     "svelte-preprocess": "^5.1.4",
     "ts-loader": "^9.5.1",
     "typescript": "^5.4.5",
+    "vitest": "^4.1.7",
     "webpack": "^5.91.0",
     "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "^5.1.4"
