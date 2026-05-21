@@ -48,6 +48,7 @@ import {
 } from '../playbackRateChangeTracking';
 import { browserHasAudioDesyncBug } from '@/helpers/browserHasAudioDesyncBug';
 import requestIdlePromise from '../helpers/requestIdlePromise';
+import { getWaveformPeakVolume } from '../helpers/getWaveformPeakVolume';
 
 
 // Assuming normal speech speed. Looked here https://en.wikipedia.org/wiki/Sampling_(signal_processing)#Sampling_rate
@@ -619,7 +620,7 @@ export default class Controller {
     assertDev(this.isInitialized());
 
     this._analyzerIn.getFloatTimeDomainData(this._volumeInfoBuffer);
-    const inputVolume = this._volumeInfoBuffer[this._volumeInfoBuffer.length - 1];
+    const inputVolume = getWaveformPeakVolume(this._volumeInfoBuffer);
 
     const lookaheadDelay = this._lookahead?.delayTime.value ?? 0;
     const stretcherDelay = this._stretcherAndPitch?.stretcherDelay ?? 0;

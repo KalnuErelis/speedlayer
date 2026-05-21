@@ -5,7 +5,7 @@ import {
 } from "./simpleSliderTuning";
 import { ControllerKind } from "./ControllerKind";
 
-export const speedLayerEngineTuningVersion = 2;
+export const speedLayerEngineTuningVersion = 3;
 
 type TuningStorage = Partial<Settings> & {
   speedLayerEngineTuningVersion?: number;
@@ -28,8 +28,15 @@ export function getSpeedLayerEngineTuningStorageUpdate(
 
   const tuningMarker = {
     speedLayerEngineTuningVersion,
-    advancedMode: false,
   };
+  if (isCurrentUncustomizedAdvancedProfile(stored)) {
+    return { ...tuningMarker, advancedMode: false };
+  }
+
+  if ((stored.speedLayerEngineTuningVersion ?? 0) >= 2) {
+    return tuningMarker;
+  }
+
   if (!isOldUncustomizedSimpleProfile(stored)) {
     return tuningMarker;
   }
@@ -48,6 +55,7 @@ export function getSpeedLayerEngineTuningStorageUpdate(
 
   return {
     ...tuningMarker,
+    advancedMode: false,
     simpleSlider: simpleSliderDefaultValue,
     ...tunedSettings,
     marginBefore: oldDefaultSettings.marginBefore,
@@ -67,6 +75,18 @@ function isOldUncustomizedSimpleProfile(stored: TuningStorage) {
     isClose(stored.silenceSpeedRaw, oldDefaultSettings.silenceSpeedRaw) &&
     isClose(stored.marginBefore, oldDefaultSettings.marginBefore) &&
     isClose(stored.marginAfter, oldDefaultSettings.marginAfter)
+  );
+}
+
+function isCurrentUncustomizedAdvancedProfile(stored: TuningStorage) {
+  const tunedSettings = simpleSliderToSettings(simpleSliderDefaultValue);
+  return (
+    stored.advancedMode === true &&
+    stored.simpleSlider === simpleSliderDefaultValue &&
+    isClose(stored.volumeThreshold, tunedSettings.volumeThreshold) &&
+    isClose(stored.silenceSpeedRaw, tunedSettings.silenceSpeedRaw) &&
+    isClose(stored.marginBefore, oldDefaultSettings.marginBefore) &&
+    isClose(stored.marginAfter, tunedSettings.marginAfter)
   );
 }
 

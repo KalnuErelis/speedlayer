@@ -30,11 +30,11 @@
     ></span>
   </div>
   <div class="sl-saved-display__stats">
-    <span>this video</span>
+    <span>this video saved</span>
     <span>{currentVideoLabel}</span>
-    <span>{weeklyText}</span>
+    <span>{weeklyText} saved</span>
     <span>{weeklyBoostLabel}</span>
-    <span>{progressText}</span>
+    <span>{progressText} milestone</span>
     <span>{toNextLevelLabel}</span>
   </div>
   {#if topVideos.length}

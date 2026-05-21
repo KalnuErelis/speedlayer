@@ -26,6 +26,8 @@ import {
 import { assertNever, assertDev } from '@/helpers';
 import { isSourceCrossOrigin, requestIdleCallbackPolyfill } from '@/entry-points/content/helpers';
 import requestIdlePromise from './helpers/requestIdlePromise';
+import { getAppropriateControllerType } from './helpers/controllerTypeSelection';
+import { isLikelyLiveMediaElement } from './helpers/isLikelyLiveMediaElement';
 import type ElementPlaybackControllerStretching from
   './ElementPlaybackControllerStretching/ElementPlaybackControllerStretching';
 import type ElementPlaybackControllerCloning from './ElementPlaybackControllerCloning/ElementPlaybackControllerCloning';
@@ -78,27 +80,6 @@ const controllerTypeDependsOnSettings = [
   'experimentalControllerType',
   'dontAttachToCrossOriginMedia',
 ] as const;
-function getAppropriateControllerType(
-  settings: Pick<Settings, typeof controllerTypeDependsOnSettings[number]>,
-  elementSourceIsCrossOrigin: boolean,
-): ControllerKind {
-  // Analyzing audio data of a CORS-restricted media element is impossible because its
-  // `MediaElementAudioSourceNode` outputs silence (see
-  // https://webaudio.github.io/web-audio-api/#MediaElementAudioSourceOptions-security,
-  // https://github.com/WofWca/jumpcutter/issues/47,
-  // https://html.spec.whatwg.org/multipage/media.html#security-and-privacy-considerations),
-  // so it's not that we only are unable to analyze it - the user also becomes unable to hear its sound.
-  // The following is to avoid that.
-  //
-  // Actually, the fact that a source is cross-origin doesn't guarantee that `MediaElementAudioSourceNode`
-  // will output silence. For example, if the media data is served with `Access-Control-Allow-Origin`
-  // header set to `document.location.origin`. But currently it's not easy to detect that. See
-  // https://github.com/WebAudio/web-audio-api/issues/2453.
-  // It's better to not attach to an element than to risk muting it as it's more confusing to the user.
-  return elementSourceIsCrossOrigin && settings.dontAttachToCrossOriginMedia
-    ? ControllerKind.ALWAYS_SOUNDED
-    : settings.experimentalControllerType
-}
 
 async function importAndCreateController<T extends ControllerKind>(
   kind: T,
@@ -167,6 +148,7 @@ export default class AllMediaElementsController {
   // it will be called in `destroy`.
   private _destroyedPromise = new Promise<void>(r => this._resolveDestroyedPromise = r);
   private _onDetachFromActiveElement?: () => void;
+  private activeMediaElementGeneration = 0;
 
   constructor() {
     if (IS_DEV_MODE) {
@@ -196,6 +178,7 @@ export default class AllMediaElementsController {
     }
   }
   private detachFromActiveElement() {
+    this.activeMediaElementGeneration += 1;
     // TODO It is possible to call this function before `this.controller` has been assigned.
     //
     // Also keep in mind that it's possible to never attached to any elements at all, even if `onNewMediaElements()`
@@ -214,6 +197,76 @@ export default class AllMediaElementsController {
     this.settings = await getSettings();
   }
   private ensureLoadSettings = once(this._loadSettings);
+  private updateControllerTypeForActiveElement() {
+    if (!this.settings || !this.controller) return;
+
+    const currentController = this.controller;
+    const el = currentController.element;
+    assertDev(typeof this.activeMediaElementSourceIsCrossOrigin === 'boolean');
+    const elementIsLikelyLive = isLikelyLiveMediaElement(el);
+    // Once a Web Audio controller has attached to an element, switching to ALWAYS_SOUNDED cannot undo
+    // `createMediaElementSource` for newly CORS-restricted media. Avoid pretending that fallback is safe.
+    if (
+      !elementIsLikelyLive
+      && this.activeMediaElementSourceIsCrossOrigin
+      && this.settings.dontAttachToCrossOriginMedia
+    ) {
+      return;
+    }
+
+    const newControllerType = getAppropriateControllerType(
+      this.settings,
+      this.activeMediaElementSourceIsCrossOrigin,
+      elementIsLikelyLive,
+    );
+    if (newControllerType === (currentController.constructor as any).controllerType) {
+      return;
+    }
+
+    const oldController = currentController;
+    const swapGeneration = this.activeMediaElementGeneration;
+    this.controller = undefined;
+    (async () => {
+      await oldController.destroy();
+      if (
+        this.activeMediaElement !== el
+        || this.activeMediaElementGeneration !== swapGeneration
+        || this.controller !== undefined
+      ) {
+        return;
+      }
+      assertDev(this.settings);
+      const elementSourceIsCrossOrigin = this.activeMediaElementSourceIsCrossOrigin;
+      if (typeof elementSourceIsCrossOrigin !== 'boolean') {
+        return;
+      }
+      const controllerTypeAtCreation = getAppropriateControllerType(
+        this.settings,
+        elementSourceIsCrossOrigin,
+        isLikelyLiveMediaElement(el),
+      );
+      const controller = await importAndCreateController(
+        controllerTypeAtCreation,
+        () => [
+          el,
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          extensionSettings2ControllerSettings(this.settings!),
+          (...args) => this.onSilenceSkippingSeek?.(...args),
+        ]
+      );
+      if (
+        this.activeMediaElement !== el
+        || this.activeMediaElementGeneration !== swapGeneration
+        || this.controller !== undefined
+      ) {
+        await controller.destroy();
+        return;
+      }
+      this.controller = controller;
+      controller.init();
+      // Controller destruction is done in `detachFromActiveElement`.
+    })();
+  }
   private reactToSettingsNewValues(newValues: Partial<Settings>) {
     if (newValues.enabled === false) {
       this.destroy();
@@ -235,31 +288,14 @@ export default class AllMediaElementsController {
     }
     Object.assign(this.settings, newValues);
     assertDev(this.controller);
+    if (!this.controller) {
+      // A controller-type swap is in flight. The new controller is created from `this.settings`,
+      // so the just-applied values will be picked up when the swap finishes.
+      return;
+    }
 
     if (controllerTypeDependsOnSettings.some(key => key in newValues)) {
-      const currentController = this.controller;
-      const el = currentController.element;
-      assertDev(typeof this.activeMediaElementSourceIsCrossOrigin === 'boolean');
-      const newControllerType = getAppropriateControllerType(this.settings, this.activeMediaElementSourceIsCrossOrigin);
-      if (newControllerType !== (currentController.constructor as any).controllerType) {
-        const oldController = currentController;
-        this.controller = undefined;
-        (async () => {
-          await oldController.destroy();
-          assertDev(this.settings);
-          const controller = this.controller = await importAndCreateController(
-            newControllerType,
-            () => [
-              el,
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              extensionSettings2ControllerSettings(this.settings!),
-              (...args) => this.onSilenceSkippingSeek?.(...args),
-            ]
-          );
-          controller.init();
-          // Controller destruction is done in `detachFromActiveElement`.
-        })();
-      }
+      this.updateControllerTypeForActiveElement();
     } else {
       // See the `updateSettingsAndMaybeCreateNewInstance` method - `this.controller` may be uninitialized after that.
       // TODO maybe it would be more clear to explicitly reinstantiate it in this file, rather than in that method?
@@ -414,6 +450,7 @@ export default class AllMediaElementsController {
     if (this.activeMediaElement) {
       this.detachFromActiveElement();
     }
+    this.activeMediaElementGeneration += 1;
     this.activeMediaElement = el;
 
     assertDev(this._onDetachFromActiveElement === undefined, 'I think `_onDetachFromActiveElement` '
@@ -441,10 +478,7 @@ export default class AllMediaElementsController {
     const elCrossOrigin = this.activeMediaElementSourceIsCrossOrigin = isSourceCrossOrigin(el);
     const onMaybeSourceChange = () => {
       this.activeMediaElementSourceIsCrossOrigin = isSourceCrossOrigin(el);
-      // TODO perhaps we also need to re-run the controller selection code (which is inside
-      // `reactToSettingsNewValues` right now)? But what if `createMediaElementSource` has already been
-      // called? There isn't really a point in switching to the `ALWAYS_SOUNDED` controller in that case,
-      // is there?
+      this.updateControllerTypeForActiveElement();
     };
     // I believe 'loadstart' might get emited even if the source didn't change (e.g. `el.load()`
     // has been called manually), but you pretty much can't change source and begin its playback
@@ -452,9 +486,15 @@ export default class AllMediaElementsController {
     // So this is reliable.
     el.addEventListener('loadstart', onMaybeSourceChange, { passive: true });
     onDetach(() => el.removeEventListener('loadstart', onMaybeSourceChange));
+    el.addEventListener('durationchange', onMaybeSourceChange, { passive: true });
+    onDetach(() => el.removeEventListener('durationchange', onMaybeSourceChange));
 
     const controllerP = importAndCreateController(
-      getAppropriateControllerType(this.settings, elCrossOrigin),
+      getAppropriateControllerType(
+        this.settings,
+        elCrossOrigin,
+        isLikelyLiveMediaElement(el),
+      ),
       () => [
         el,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

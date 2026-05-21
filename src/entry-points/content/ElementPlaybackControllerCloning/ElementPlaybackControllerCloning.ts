@@ -42,6 +42,7 @@ import {
 } from '../playbackRateChangeTracking';
 import { browserHasAudioDesyncBug } from '@/helpers/browserHasAudioDesyncBug';
 import requestIdlePromise from '../helpers/requestIdlePromise';
+import { getWaveformPeakVolume } from '../helpers/getWaveformPeakVolume';
 
 type Time = AnyTime;
 
@@ -421,10 +422,9 @@ export default class Controller {
         // Using the minimum possible value for performance, as we're only using the node to get unchanged
         // output values.
         const volumeBuffer = new Float32Array(analyser.fftSize);
-        const volumeBufferLastInd = volumeBuffer.length - 1;
         this.getVolume = () => {
           analyser.getFloatTimeDomainData(volumeBuffer);
-          return volumeBuffer[volumeBufferLastInd];
+          return getWaveformPeakVolume(volumeBuffer);
         };
       } else {
         this.getVolume = () => 0;
