@@ -137,24 +137,7 @@ export function buildWeeklyScorecard(
   };
 }
 
+// SpeedLayer keeps this as a seconds counter so saved time visibly keeps climbing in the popup.
 export function formatSavedTime(seconds: number): string {
-  const roundedSeconds = Math.max(0, Math.round(seconds));
-  const minutes = Math.round(roundedSeconds / 60);
-
-  if (minutes < 1) {
-    return `${roundedSeconds}s`;
-  }
-
-  if (minutes < 60) {
-    return `${minutes} min`;
-  }
-
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-
-  if (remainingMinutes === 0) {
-    return `${hours}h`;
-  }
-
-  return `${hours}h ${remainingMinutes}m`;
+  return `${Math.max(0, seconds).toFixed(3)}s`;
 }

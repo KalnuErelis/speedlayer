@@ -5,7 +5,7 @@ import {
 } from "./simpleSliderTuning";
 import { ControllerKind } from "./ControllerKind";
 
-export const speedLayerEngineTuningVersion = 1;
+export const speedLayerEngineTuningVersion = 2;
 
 type TuningStorage = Partial<Settings> & {
   speedLayerEngineTuningVersion?: number;
@@ -26,7 +26,10 @@ export function getSpeedLayerEngineTuningStorageUpdate(
     return null;
   }
 
-  const tuningMarker = { speedLayerEngineTuningVersion };
+  const tuningMarker = {
+    speedLayerEngineTuningVersion,
+    advancedMode: false,
+  };
   if (!isOldUncustomizedSimpleProfile(stored)) {
     return tuningMarker;
   }

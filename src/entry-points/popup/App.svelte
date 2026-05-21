@@ -52,7 +52,6 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     HotkeyAction_DECREASE_MARGIN_AFTER,
     HotkeyAction_TOGGLE_MARGIN_AFTER,
     HotkeyAction_SET_MARGIN_AFTER,
-    HotkeyAction_TOGGLE_PAUSE,
   } from '@/hotkeys';
   import type { HotkeyBinding } from '@/hotkeys';
   import type createKeydownListener from './hotkeys';
@@ -66,7 +65,6 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   import IntensitySlider from './components/IntensitySlider.svelte';
   import IconButton from './components/IconButton.svelte';
   import SettingsSheet from './components/SettingsSheet.svelte';
-  import TimelineCanvas from './components/TimelineCanvas.svelte';
   import AdvancedRangeControl from './components/AdvancedRangeControl.svelte';
   import CurrentVolumeMeter from './components/CurrentVolumeMeter.svelte';
   import {
@@ -321,13 +319,6 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     ? getMessage('relativeToSounded')
     : getMessage('absolute');
 
-  function onChartClick() {
-    nonSettingsActionsPort?.postMessage([{
-      action: HotkeyAction_TOGGLE_PAUSE,
-      keyCombination: { code: 'stub', }, // TODO this is dumb.
-    }]);
-  }
-
   const openLocalFileLinkProps = {
     href: getPopupRuntimeUrl('local-file-player/index.html'),
     target: '_blank',
@@ -430,8 +421,6 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       connectionFailed: considerConnectionFailed,
     })
     : undefined;
-  $: chartWidthPx = Math.min(settings?.popupChartWidthPx ?? 336, 336);
-
   function getMediaStatusLabel() {
     if (viewState?.mediaStatus === 'active') return getMessage('video');
     if (viewState?.mediaStatus === 'loading') return getMessage('loading');
@@ -569,21 +558,6 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     ariaLabel={getMessage('timeSaved')}
   />
 
-  <!-- TODO transitions? -->
-  <div
-    class="sl-chart-panel"
-    style={
-      `--popupChartHeight: ${settings.popupChartHeightPx}px;`
-      + 'min-height: var(--popupChartHeight);'
-      + 'display: flex;'
-      + 'align-items: center;'
-    }
-  >
-  <div
-    style={
-      "width: 100%;"
-    }
-  >
   {#if !connected}
     <div class="content-script-connection-info">
       <!-- TODO should we add an {:else} block for the case when it's disabled and put something like a
@@ -651,41 +625,27 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
         {/if}
       {/if}
     </div>
-  {:else}
-    <TimelineCanvas
-      {latestTelemetryRecord}
-      volumeThreshold={settings.volumeThreshold}
-      widthPx={chartWidthPx}
-      heightPx={settings.popupChartHeightPx}
-      lengthSeconds={settings.popupChartLengthInSeconds}
-      timeProgressionSpeed={settings.popupChartSpeed}
-      soundedSpeed={settings.soundedSpeed}
-      onClick={onChartClick}
-    />
+  {:else if latestTelemetryRecord?.elementLikelyCorsRestricted}
     <!-- TODO it an element is cross-origin and we called `createMediaElementSource` for it and it appears
     to produce sound, don't show the warning. -->
-    {#if latestTelemetryRecord?.elementLikelyCorsRestricted}
-      {#await import(
-        /* webpackExports: ['default'] */
-        './MediaUnsupportedMessage.svelte'
-      )}
-        <!-- `await` so it doesnt get shown immediately so it doesn't flash -->
-        {#await new Promise(r => setTimeout(r, 300)) then _}
-          ⏳ {getMessage('loading')}...
-        {/await}
-      {:then { default: MediaUnsupportedMessage }}
-        <MediaUnsupportedMessage
-          {latestTelemetryRecord}
-          {settings}
-          on:dontAttachToCrossOriginMediaChange={({ detail }) => {
-            updateSettingsLocalCopyAndStorage({ dontAttachToCrossOriginMedia: detail });
-          }}
-        />
+    {#await import(
+      /* webpackExports: ['default'] */
+      './MediaUnsupportedMessage.svelte'
+    )}
+      <!-- `await` so it doesnt get shown immediately so it doesn't flash -->
+      {#await new Promise(r => setTimeout(r, 300)) then _}
+        ⏳ {getMessage('loading')}...
       {/await}
-    {/if}
+    {:then { default: MediaUnsupportedMessage }}
+      <MediaUnsupportedMessage
+        {latestTelemetryRecord}
+        {settings}
+        on:dontAttachToCrossOriginMediaChange={({ detail }) => {
+          updateSettingsLocalCopyAndStorage({ dontAttachToCrossOriginMedia: detail });
+        }}
+      />
+    {/await}
   {/if}
-  </div>
-  </div>
 
   {#if !settings.advancedMode}
   <IntensitySlider

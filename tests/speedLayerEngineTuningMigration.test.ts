@@ -29,6 +29,7 @@ describe("SpeedLayer engine tuning migration", () => {
       },
     })).toMatchObject({
       speedLayerEngineTuningVersion,
+      advancedMode: false,
       simpleSlider: 50,
       volumeThreshold: 0.007,
       silenceSpeedRaw: 2.3,
@@ -45,21 +46,39 @@ describe("SpeedLayer engine tuning migration", () => {
     });
   });
 
-  it("leaves customized profiles alone and only records the migration marker", () => {
+  it("leaves customized profiles alone and switches back to simple mode", () => {
     expect(getSpeedLayerEngineTuningStorageUpdate({
-      advancedMode: false,
+      advancedMode: true,
       simpleSlider: 80,
       volumeThreshold: 0.012,
       silenceSpeedRaw: 3,
       marginBefore: 0,
       marginAfter: 0.07,
-    })).toEqual({ speedLayerEngineTuningVersion });
-  });
-
-  it("does nothing after the migration has run", () => {
-    expect(getSpeedLayerEngineTuningStorageUpdate({
+    })).toEqual({
       speedLayerEngineTuningVersion,
       advancedMode: false,
+    });
+  });
+
+  it("collapses advanced mode for installs with the previous tuning migration", () => {
+    expect(getSpeedLayerEngineTuningStorageUpdate({
+      speedLayerEngineTuningVersion: 1,
+      advancedMode: true,
+      simpleSlider: 50,
+      volumeThreshold: 0.007,
+      silenceSpeedRaw: 2.3,
+      marginBefore: 0,
+      marginAfter: 0.105,
+    })).toEqual({
+      speedLayerEngineTuningVersion,
+      advancedMode: false,
+    });
+  });
+
+  it("does nothing after the current migration has run", () => {
+    expect(getSpeedLayerEngineTuningStorageUpdate({
+      speedLayerEngineTuningVersion,
+      advancedMode: true,
       simpleSlider: 33,
       volumeThreshold: 0.00595,
       silenceSpeedRaw: 2.16,

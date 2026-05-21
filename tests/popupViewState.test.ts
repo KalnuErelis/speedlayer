@@ -20,9 +20,9 @@ describe("createPopupViewState", () => {
       mediaStatus: "loading",
       speedLabel: "1.5x",
       savedTime: {
-        weeklyLabel: "0s",
-        lifetimeLabel: "1 min",
-        nextMilestoneLabel: "15 min",
+        weeklyLabel: "0.000s",
+        lifetimeLabel: "60.000s",
+        nextMilestoneLabel: "900.000s",
       },
     });
   });
@@ -48,9 +48,9 @@ describe("createPopupViewState", () => {
       mediaStatus: "active",
       speedLabel: "1.75x",
       savedTime: {
-        weeklyLabel: "2 min",
-        lifetimeLabel: "1h 1m",
-        nextMilestoneLabel: "2h",
+        weeklyLabel: "125.000s",
+        lifetimeLabel: "3661.000s",
+        nextMilestoneLabel: "7200.000s",
       },
     });
   });
