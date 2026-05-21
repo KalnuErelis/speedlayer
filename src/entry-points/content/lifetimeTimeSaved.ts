@@ -42,6 +42,7 @@ export default function startTrackingLifetimeTimeSaved(
   onStop: (callback: () => void) => void
 ): {
   getLifetimeTimeSaved: () => TimeSavedTracker["timeSavedData"];
+  getSessionTimeSaved: () => TimeSavedTracker["timeSavedData"];
   onSilenceSkippingSeek: TimeSavedTracker["onSilenceSkippingSeek"];
 } {
   const TimeSavedTracker = TimeSavedTracker_;
@@ -203,6 +204,7 @@ export default function startTrackingLifetimeTimeSaved(
   return {
     getLifetimeTimeSaved: () =>
       getLifetimeTimeSaved(timeSavedTracker.timeSavedData),
+    getSessionTimeSaved: () => timeSavedTracker.timeSavedData,
     onSilenceSkippingSeek: (...args) =>
       timeSavedTracker.onSilenceSkippingSeek(...args),
   };

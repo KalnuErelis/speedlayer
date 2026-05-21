@@ -497,17 +497,6 @@ export default class AllMediaElementsController {
       );
       onDetach(() => timeSavedTracker.destroy());
 
-      const { createCurrentVideoSavedSecondsReader, startSavedSecondsTicker } = await import(
-        /* webpackExports: ['createCurrentVideoSavedSecondsReader', 'startSavedSecondsTicker'] */
-        './savedSecondsTicker'
-      );
-      const getCurrentVideoSavedSeconds = createCurrentVideoSavedSecondsReader({
-        getEntries: () => this.settings?.videoTimeSavedLeaderboard,
-        getIdentity: () => getCurrentVideoTimeSavedIdentity(),
-        getCurrentSessionSavedSeconds: () => timeSavedTracker.timeSavedData.timeSavedComparedToSoundedSpeed,
-      });
-      startSavedSecondsTicker(getCurrentVideoSavedSeconds, onDetach);
-
       onSilenceSkippingSeek1 =
         timeSavedTracker.onSilenceSkippingSeek.bind(timeSavedTracker);
 
@@ -525,10 +514,9 @@ export default class AllMediaElementsController {
         const startTrackingLifetimeTimeSaved = (await importP).default
         const TimeSavedTracker = (await TimeSavedTrackerPromise).default
         await controllerP; // Same as above
-        // Note that this will delay all telemetry.
-        await requestIdlePromise({ timeout: 10_000 })
 
         const {
+          getSessionTimeSaved,
           getLifetimeTimeSaved,
           onSilenceSkippingSeek
         } = startTrackingLifetimeTimeSaved(
@@ -547,6 +535,17 @@ export default class AllMediaElementsController {
           onDetach,
         )
         onSilenceSkippingSeek2 = onSilenceSkippingSeek
+
+        const { createCurrentVideoSavedSecondsReader, startSavedSecondsTicker } = await import(
+          /* webpackExports: ['createCurrentVideoSavedSecondsReader', 'startSavedSecondsTicker'] */
+          './savedSecondsTicker'
+        );
+        const getCurrentVideoSavedSeconds = createCurrentVideoSavedSecondsReader({
+          getEntries: () => this.settings?.videoTimeSavedLeaderboard,
+          getIdentity: () => getCurrentVideoTimeSavedIdentity(),
+          getCurrentSessionSavedSeconds: () => getSessionTimeSaved().timeSavedComparedToSoundedSpeed,
+        });
+        startSavedSecondsTicker(getCurrentVideoSavedSeconds, onDetach);
 
         this.getLifetimeTimeSaved = getLifetimeTimeSaved
         onDetach(() => {
