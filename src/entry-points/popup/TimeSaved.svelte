@@ -10,6 +10,10 @@
     getTimeSavedComparedToIntrinsicSpeedFraction,
     getTimeSavedComparedToSoundedSpeedFraction,
   } from "@/helpers/timeSavedMath";
+  import {
+    buildWeeklyScorecard,
+    formatSavedTime,
+  } from "@/helpers/weeklyScorecard";
 
   type RequiredSettings = Pick<
     Settings,
@@ -23,6 +27,8 @@
     | "lifetimeTimeSavedComparedToIntrinsicSpeed"
     | "lifetimeWouldHaveLastedIfSpeedWasSounded"
     | "lifetimeWouldHaveLastedIfSpeedWasIntrinsic"
+    | "weeklyTimeSavedComparedToSoundedSpeed"
+    | "timeSavedLastSeenLifetimeMilestoneSeconds"
   >;
   type RequiredTelemetry = Pick<
     TelemetryMessage,
@@ -37,6 +43,16 @@
   export let onSettingsChange: (newValues: Partial<RequiredSettings>) => void
 
   let generalTooltipContentEl: HTMLElement;
+  const weekdayLabels = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ] as const;
+  let showNewMilestoneSeconds: number | undefined;
 
   function mmSs(s: number): string {
     return fromS(Math.round(s), 'mm:ss');
@@ -118,6 +134,20 @@
     && $tweenedLifetimeTimeSavedComparedToSoundedSpeed != undefined
     && $tweenedLifetimeTimeSavedComparedToSoundedSpeed <
       r.lifetimeTimeSaved.timeSavedComparedToSoundedSpeed
+
+  $: scorecard = buildWeeklyScorecard(
+    settings.weeklyTimeSavedComparedToSoundedSpeed,
+    r?.lifetimeTimeSaved.timeSavedComparedToSoundedSpeed
+      ?? settings.lifetimeTimeSavedComparedToSoundedSpeed,
+    settings.timeSavedLastSeenLifetimeMilestoneSeconds ?? 0
+  );
+  $: if (scorecard.newlyReachedMilestoneSeconds != undefined) {
+    showNewMilestoneSeconds = scorecard.newlyReachedMilestoneSeconds;
+    onSettingsChange({
+      timeSavedLastSeenLifetimeMilestoneSeconds:
+        scorecard.newlyReachedMilestoneSeconds,
+    });
+  }
 
   function formatTimeSaved(num: number) {
     return num.toFixed(2);
@@ -437,6 +467,43 @@ of those who use `soundedSpeed=1` -->
   }</span>
 </button>
 
+<section class="weekly-scorecard" aria-label="Weekly time saved scorecard">
+  <div class="weekly-scorecard__main">
+    <span class="weekly-scorecard__label">This week</span>
+    <strong>{formatSavedTime(scorecard.weeklyTotalSeconds)} saved</strong>
+  </div>
+
+  {#if scorecard.weeklyTotalSeconds > 0}
+    <div class="weekly-scorecard__row">
+      <span>Best day</span>
+      <span>
+        {weekdayLabels[scorecard.bestDayIndex ?? 0]},
+        {formatSavedTime(scorecard.bestDaySeconds)}
+      </span>
+    </div>
+  {:else}
+    <div class="weekly-scorecard__row">
+      <span>No saved time yet</span>
+      <span>Play a video</span>
+    </div>
+  {/if}
+
+  <div class="weekly-scorecard__row">
+    <span>Lifetime</span>
+    <span>{formatSavedTime(scorecard.lifetimeSeconds)}</span>
+  </div>
+  <div class="weekly-scorecard__row">
+    <span>Next milestone</span>
+    <span>{formatSavedTime(scorecard.nextMilestoneSeconds)} saved</span>
+  </div>
+
+  {#if showNewMilestoneSeconds != undefined}
+    <div class="weekly-scorecard__milestone">
+      Milestone reached: {formatSavedTime(showNewMilestoneSeconds)} saved
+    </div>
+  {/if}
+</section>
+
 <style>
   button {
     border: none;
@@ -468,11 +535,53 @@ of those who use `soundedSpeed=1` -->
     transition-timing-function: (0.18, 0.89, 0.32, 1.28);
     transition-duration: 100ms; */
   }
+  .weekly-scorecard {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    font-size: 0.75rem;
+    line-height: 1.35;
+    min-width: 11.5rem;
+  }
+  .weekly-scorecard__main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    margin-bottom: 0.25rem;
+  }
+  .weekly-scorecard__main strong {
+    font-size: 1rem;
+    line-height: 1.15;
+  }
+  .weekly-scorecard__label,
+  .weekly-scorecard__row span:first-child {
+    color: rgba(255, 255, 255, 0.68);
+  }
+  .weekly-scorecard__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    white-space: nowrap;
+  }
+  .weekly-scorecard__milestone {
+    margin-top: 0.35rem;
+    color: #b0ffb0;
+  }
   @media (prefers-color-scheme: light) {
     .lifetime-time-saved.green {
       color: #008000;
       text-shadow:
         0px 0px 8px #00FF0050;
+    }
+    .weekly-scorecard {
+      border-top-color: rgba(0, 0, 0, 0.14);
+    }
+    .weekly-scorecard__label,
+    .weekly-scorecard__row span:first-child {
+      color: rgba(0, 0, 0, 0.62);
+    }
+    .weekly-scorecard__milestone {
+      color: #008000;
     }
   }
 </style>

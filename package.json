@@ -32,6 +32,7 @@
     "serve:chromium": "yarn run _abstract-serve --env browser=chromium",
     "serve:manual-test": "node scripts/serve-manual-test.mjs",
     "lint": "eslint ./src/",
+    "verify:weekly-scorecard": "node --no-warnings --experimental-strip-types scripts/verify-weekly-scorecard.mjs",
     "verify:chromium": "node scripts/verify-chromium-build.mjs"
   },
   "sideEffects": [

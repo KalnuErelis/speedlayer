@@ -99,6 +99,8 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
       | 'lifetimeTimeSavedComparedToIntrinsicSpeed'
       | 'lifetimeWouldHaveLastedIfSpeedWasSounded'
       | 'lifetimeWouldHaveLastedIfSpeedWasIntrinsic'
+      | 'weeklyTimeSavedComparedToSoundedSpeed'
+      | 'timeSavedLastSeenLifetimeMilestoneSeconds'
     >
     & ReturnType<Parameters<typeof createKeydownListener>[1]>
     & Parameters<typeof changeAlgorithmAndMaybeRelatedSettings>[0]

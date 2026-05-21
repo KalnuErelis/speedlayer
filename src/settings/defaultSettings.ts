@@ -25,6 +25,7 @@ import { HotkeyAction } from '@/hotkeys';
 import { getGeckoLikelyMaxNonMutedPlaybackRate } from '@/helpers';
 import { browserHasAudioDesyncBug } from '@/helpers/browserHasAudioDesyncBug';
 import { isMobile } from '@/helpers/isMobile';
+import { emptyWeeklyTimeSavedState } from '@/helpers/weeklyScorecard';
 
 // Start with a below-middle value to let the user get a feel
 // for how the extension behaves without being too disruptive,
@@ -268,6 +269,8 @@ export const defaultSettings: Readonly<Settings> = {
   lifetimeTimeSavedComparedToIntrinsicSpeed: 0,
   lifetimeWouldHaveLastedIfSpeedWasSounded: 0,
   lifetimeWouldHaveLastedIfSpeedWasIntrinsic: 0,
+  weeklyTimeSavedComparedToSoundedSpeed: emptyWeeklyTimeSavedState,
+  timeSavedLastSeenLifetimeMilestoneSeconds: 0,
 
   // This used to be 'soundedSpeed', but since
   // `onPlaybackRateChangeFromOtherScripts` defaults to

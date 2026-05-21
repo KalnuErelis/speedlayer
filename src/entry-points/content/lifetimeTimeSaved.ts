@@ -1,6 +1,7 @@
 import { addOnStorageChangedListener, type Settings } from "@/settings";
 import type TimeSavedTracker from "./TimeSavedTracker";
 import { getTimeSavedComparedToIntrinsicSpeedFraction, getTimeSavedComparedToSoundedSpeedFraction } from "@/helpers/timeSavedMath";
+import { updateWeeklyTimeSavedState } from "@/helpers/weeklyScorecard";
 
 /**
  * Starts tracking how much time we're saving on {@linkcode el},
@@ -20,6 +21,7 @@ export default function startTrackingLifetimeTimeSaved(
     | "lifetimeTimeSavedComparedToIntrinsicSpeed"
     | "lifetimeWouldHaveLastedIfSpeedWasSounded"
     | "lifetimeWouldHaveLastedIfSpeedWasIntrinsic"
+    | "weeklyTimeSavedComparedToSoundedSpeed"
   >,
   setSettings_: (
     newValues: Partial<
@@ -29,6 +31,7 @@ export default function startTrackingLifetimeTimeSaved(
         | "lifetimeTimeSavedComparedToIntrinsicSpeed"
         | "lifetimeWouldHaveLastedIfSpeedWasSounded"
         | "lifetimeWouldHaveLastedIfSpeedWasIntrinsic"
+        | "weeklyTimeSavedComparedToSoundedSpeed"
       >
     >
   ) => void,
@@ -125,6 +128,9 @@ export default function startTrackingLifetimeTimeSaved(
     }
 
     const lifetimeSaved = getLifetimeTimeSaved(timeSavedInCurrSession);
+    const soundedSavedDelta =
+      timeSavedInCurrSession.timeSavedComparedToSoundedSpeed -
+      lastStoredTrackerVals.timeSavedComparedToSoundedSpeed;
 
     // Sanity checks. Don't save to storage if the value is insane,
     // in order to not permanently mess up the stored value.
@@ -157,6 +163,10 @@ export default function startTrackingLifetimeTimeSaved(
         lifetimeSaved.wouldHaveLastedIfSpeedWasIntrinsic,
       lifetimeWouldHaveLastedIfSpeedWasSounded:
         lifetimeSaved.wouldHaveLastedIfSpeedWasSounded,
+      weeklyTimeSavedComparedToSoundedSpeed: updateWeeklyTimeSavedState(
+        settings.weeklyTimeSavedComparedToSoundedSpeed,
+        soundedSavedDelta
+      ),
     });
     lastStoredTrackerVals = timeSavedInCurrSession;
   };
