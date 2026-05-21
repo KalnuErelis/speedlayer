@@ -59,7 +59,9 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     timeProgressionSpeed === 'intrinsicTime'
     || timeProgressionSpeed === 'soundedSpeedTime';
 
-  let canvasEl: HTMLCanvasElement;
+  let canvasEl: HTMLCanvasElement | undefined;
+  let mounted = false;
+  let animationFrameId: number | undefined;
   $: stretchFactor = timeProgressionSpeed === 'soundedSpeedTime'
     ? soundedSpeed
     : 1;
@@ -131,12 +133,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   }
   $: meterMaxValue = volumeThreshold / bestYAxisRelativeVolumeThreshold;
 
-  // TODO perf: `preload` doesn't work on Chromium:
-  // A preload for 'chrome-extension://.../chunks/655.js' is found, but is not used because the request credentials mode does not match. Consider taking a look at crossorigin attribute.
-  // I believe this started happening since the migration to Manifest V3 (1348cd8)
-  // Though it's not happening for `tippy.js`, which we also preload hmm.
   const smoothieImportP = import(
-    /* webpackPreload: true */
     /* webpackExports: ['SmoothieChart', 'TimeSeries'] */
     '@wofwca/smoothie' // TODO replace it with just 'smoothie' when it starts being released.
   );
@@ -244,6 +241,11 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   let referenceTelemetry: Parameters<typeof toIntrinsicTime>[1] | undefined;
   async function initSmoothie() {
     const { SmoothieChart, TimeSeries } = await smoothieImportP;
+    if (!mounted || !canvasEl) {
+      return;
+    }
+    const chartCanvas = canvasEl;
+
     // TODO make all these numbers customizable.
     smoothie = new SmoothieChart({
       millisPerPixel, // To be adjusted dynamically
@@ -279,16 +281,19 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
         }
       },
     });
-    smoothie.streamTo(canvasEl);
+    smoothie.streamTo(chartCanvas);
     smoothie.stop();
 
     loadedPromise.then(() => {
-      setMaxChartValueToBest();
+      if (!mounted || !smoothie) {
+        return;
+      }
       // So it doesn't play the scaling animation.
-      const scaleSmoothing = smoothie!.options.scaleSmoothing;
-      smoothie!.options.scaleSmoothing = 1;
-      smoothie!.render();
-      smoothie!.options.scaleSmoothing = scaleSmoothing;
+      setMaxChartValueToBest();
+      const scaleSmoothing = smoothie.options.scaleSmoothing;
+      smoothie.options.scaleSmoothing = 1;
+      smoothie.render(chartCanvas);
+      smoothie.options.scaleSmoothing = scaleSmoothing;
     });
 
     volumeSeries = new TimeSeries();
@@ -426,7 +431,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
 
     updateSmoothieVolumeThreshold();
 
-    const canvasContext = canvasEl.getContext('2d')!;
+    const canvasContext = chartCanvas.getContext('2d')!;
 
     let offsetAdjustment: number | undefined;
     function getCurrentTime(latestTelemetryRecord: TelemetryRecord) {
@@ -469,6 +474,11 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     }
     onJumpPeriodChange = updateOffsetAdjustmentSoChartDoesntJumpImmediately;
     (function drawAndScheduleAnother() {
+      if (!mounted || !smoothie) {
+        animationFrameId = undefined;
+        return;
+      }
+
       if (latestTelemetryRecord) {
         const time = getCurrentTime(latestTelemetryRecord);
         let timeAtChartEdge = time;
@@ -537,7 +547,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
         smoothie.options.millisPerPixel = millisPerPixelTweened;
 
         const renderTimeBefore = (smoothie as SmoothieChartWithPrivateFields).lastRenderTimeMillis;
-        smoothie.render(canvasEl, timeAtChartEdge);
+        smoothie.render(chartCanvas, timeAtChartEdge);
         const renderTimeAfter = (smoothie as SmoothieChartWithPrivateFields).lastRenderTimeMillis;
         const canvasRepainted = renderTimeBefore !== renderTimeAfter; // Not true for FPS > 1000.
 
@@ -579,10 +589,24 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
         }
       }
 
-      requestAnimationFrame(drawAndScheduleAnother);
+      animationFrameId = requestAnimationFrame(drawAndScheduleAnother);
     })();
   }
-  onMount(initSmoothie);
+  onMount(() => {
+    mounted = true;
+    void initSmoothie();
+
+    return () => {
+      mounted = false;
+      if (animationFrameId !== undefined) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = undefined;
+      }
+      smoothie?.stop();
+      smoothie = undefined;
+      debouncedSetMaxChartValueToBest.cancel();
+    };
+  });
 
   function appendToSpeedSeries(timeMs: TimeMs, speedName: TelemetryRecord['lastActualPlaybackRateChange']['name']) {
     soundedSpeedSeries.append(timeMs, speedName === SpeedName_SOUNDED ? offTheChartsValue : 0);
