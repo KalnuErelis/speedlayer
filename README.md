@@ -77,6 +77,13 @@ Chrome alpha instructions are tracked in:
 docs/speedlayer/chrome-alpha.md
 ```
 
+QA and release readiness are tracked in:
+
+```text
+docs/speedlayer/qa-tracker.md
+docs/speedlayer/chrome-web-store-readiness.md
+```
+
 ## License
 
 SpeedLayer is distributed under AGPL-3.0-or-later, following the upstream Jump Cutter license.
