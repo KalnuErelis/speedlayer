@@ -31,16 +31,16 @@ describe("SpeedLayer engine tuning migration", () => {
       speedLayerEngineTuningVersion,
       advancedMode: false,
       simpleSlider: 50,
-      volumeThreshold: 0.004,
-      silenceSpeedRaw: 2.075,
+      volumeThreshold: 0.00275,
+      silenceSpeedRaw: 1.85,
       marginBefore: 0,
-      marginAfter: 0.12,
+      marginAfter: 0.14,
       algorithmSpecificSettings: {
         [ControllerKind.STRETCHING]: {
-          volumeThreshold: 0.004,
+          volumeThreshold: 0.00275,
           marginBefore: 0,
-          marginAfter: 0.12,
-          silenceSpeedRaw: 2.075,
+          marginAfter: 0.14,
+          silenceSpeedRaw: 1.85,
         },
       },
     });
@@ -70,10 +70,10 @@ describe("SpeedLayer engine tuning migration", () => {
       marginAfter: 0.03,
     })).toMatchObject({
       speedLayerEngineTuningVersion,
-      volumeThreshold: 0.006,
-      silenceSpeedRaw: 2.8,
+      volumeThreshold: 0.004,
+      silenceSpeedRaw: 2.4,
       marginBefore: 0,
-      marginAfter: 0.06,
+      marginAfter: 0.08,
     });
   });
 
@@ -89,10 +89,10 @@ describe("SpeedLayer engine tuning migration", () => {
     })).toEqual({
       speedLayerEngineTuningVersion,
       advancedMode: false,
-      volumeThreshold: 0.004,
-      silenceSpeedRaw: 2.075,
+      volumeThreshold: 0.00275,
+      silenceSpeedRaw: 1.85,
       marginBefore: 0,
-      marginAfter: 0.12,
+      marginAfter: 0.14,
     });
   });
 
@@ -108,10 +108,10 @@ describe("SpeedLayer engine tuning migration", () => {
     })).toEqual({
       speedLayerEngineTuningVersion,
       advancedMode: false,
-      volumeThreshold: 0.004,
-      silenceSpeedRaw: 2.075,
+      volumeThreshold: 0.00275,
+      silenceSpeedRaw: 1.85,
       marginBefore: 0,
-      marginAfter: 0.12,
+      marginAfter: 0.14,
     });
   });
 

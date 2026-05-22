@@ -5,7 +5,7 @@ import {
 } from "./simpleSliderTuning";
 import { ControllerKind } from "./ControllerKind";
 
-export const speedLayerEngineTuningVersion = 4;
+export const speedLayerEngineTuningVersion = 5;
 
 type TuningStorage = Partial<Settings> & {
   speedLayerEngineTuningVersion?: number;
@@ -18,13 +18,20 @@ const oldDefaultSettings = {
   marginBefore: 0,
   marginAfter: 0.164,
 };
-const previousSimpleDefaultSettings = {
-  volumeThreshold: 0.007,
-  silenceSpeedRaw: 2.3,
-  marginBefore: 0,
-  marginAfter: 0.105,
-};
-
+const previousSimpleDefaultSettings = [
+  {
+    volumeThreshold: 0.004,
+    silenceSpeedRaw: 2.075,
+    marginBefore: 0,
+    marginAfter: 0.12,
+  },
+  {
+    volumeThreshold: 0.007,
+    silenceSpeedRaw: 2.3,
+    marginBefore: 0,
+    marginAfter: 0.105,
+  },
+];
 export function getSpeedLayerEngineTuningStorageUpdate(
   stored: TuningStorage,
 ): TuningStorage | null {
@@ -134,7 +141,9 @@ function isCurrentUncustomizedAdvancedProfile(stored: TuningStorage) {
 }
 
 function isPreviousUncustomizedAdvancedProfile(stored: TuningStorage) {
-  return isUncustomizedAdvancedProfile(stored, previousSimpleDefaultSettings);
+  return previousSimpleDefaultSettings.some(expected =>
+    isUncustomizedAdvancedProfile(stored, expected)
+  );
 }
 
 function isUncustomizedAdvancedProfile(
