@@ -17,7 +17,7 @@ Local:
 
 Pushed/PR:
 
-- Branch `speedlayer-v2` is pushed to `KalnuErelis/speedlayer`, but the latest local launch-prep diff has not been pushed yet.
+- Branch `speedlayer-v2` is pushed to `KalnuErelis/speedlayer` at `19fedb0`.
 - No release tag exists.
 - No PR exists.
 
@@ -34,15 +34,14 @@ Runtime:
 Blocked proof:
 
 - No final name/trademark clearance.
-- No public privacy policy URL until `PRIVACY.md` is pushed and visible on GitHub.
-- No Chrome Web Store developer-account submission proof.
+- Chrome Web Store developer account is still on the developer agreement and one-time $5 registration fee screen.
 - No Web Store review decision.
 
 ## Release Candidate
 
 - Package: `dist-chromium.zip`
 - Size: 361 KB
-- SHA-256: `36d76e8d563d5a90b4cd2b8e5d5161589fc6f8b9c08a82f299c6a8087cb7c1e4`
+- SHA-256: `f96d3f31be5c6f6f0f50cc8985cfc62827d5a15f7c273973982cb07334388866`
 - Manifest: MV3, `SpeedLayer`, version `0.1.0`
 - Build command: `corepack yarn build-and-package:chromium`
 - Verification command: `corepack yarn verify:chromium`
@@ -57,7 +56,7 @@ Blocked proof:
 - At least one screenshot of the popup on a real video page.
 - At least one screenshot showing settings/options if they remain public.
 - Support URL or support email.
-- Privacy policy URL: `https://github.com/KalnuErelis/speedlayer/blob/speedlayer-v2/PRIVACY.md` after push.
+- Privacy policy URL: `https://github.com/KalnuErelis/speedlayer/blob/speedlayer-v2/PRIVACY.md`
 - Source code URL: `https://github.com/KalnuErelis/speedlayer`
 
 Current asset files:
@@ -110,8 +109,9 @@ P0 before submission:
 - [x] Run `corepack yarn verify:chromium`.
 - [x] Run `corepack yarn smoke:chromium`.
 - [x] Run `codex review --uncommitted` on the release diff.
-- [ ] Push launch-prep diff to GitHub.
-- [ ] Push `PRIVACY.md` so the privacy policy URL is publicly reachable.
+- [x] Push launch-prep diff to GitHub.
+- [x] Push `PRIVACY.md` so the privacy policy URL is publicly reachable.
+- [ ] Complete Chrome Web Store developer registration agreement and one-time $5 registration fee.
 - [ ] Upload `dist-chromium.zip` in the Chrome Web Store developer dashboard.
 - [ ] Complete Chrome Web Store privacy and permission questionnaire.
 - [ ] Submit for Chrome Web Store review.
