@@ -84,7 +84,8 @@ const controllerTypeDependsOnSettings = [
 async function importAndCreateController<T extends ControllerKind>(
   kind: T,
   // Not just `constructorArgs` because e.g. settings can change while `import()` is ongoing.
-  getConstructorArgs: () => ConstructorParameters<ControllerType<T>>
+  getConstructorArgs: () => ConstructorParameters<ControllerType<T>>,
+  shouldCreate = () => true,
 ) {
   let Controller;
   switch (kind) {
@@ -111,6 +112,9 @@ async function importAndCreateController<T extends ControllerKind>(
     }
     default: assertNever(kind);
   }
+  if (!shouldCreate()) {
+    return undefined;
+  }
   type Hack = ConstructorParameters<typeof ElementPlaybackControllerCloning>;
   const controller = new Controller(...(getConstructorArgs() as Hack));
   return controller;
@@ -131,6 +135,9 @@ export default class AllMediaElementsController {
   private handledMutedElements = new WeakSet<HTMLMediaElement>();
   elementLastActivatedAt: number | undefined;
   controller: SomeController | undefined;
+  private controllerSwapInFlightFrom: SomeController | undefined;
+  private controllerSwapPendingSettings: Partial<Settings> | undefined;
+  private controllerSwapNeedsTypeRecheck = false;
 
   // TODO refactor: rename this var? Since there are now 2 time saved trackers.
   // And other such variables.
@@ -185,6 +192,9 @@ export default class AllMediaElementsController {
     // has been called (see that function).
     this.controller?.destroy();
     this.controller = undefined;
+    this.controllerSwapInFlightFrom = undefined;
+    this.controllerSwapPendingSettings = undefined;
+    this.controllerSwapNeedsTypeRecheck = false;
     this._onDetachFromActiveElement?.();
     this._onDetachFromActiveElement = undefined;
   }
@@ -199,6 +209,10 @@ export default class AllMediaElementsController {
   private ensureLoadSettings = once(this._loadSettings);
   private updateControllerTypeForActiveElement() {
     if (!this.settings || !this.controller) return;
+    if (this.controllerSwapInFlightFrom) {
+      this.controllerSwapNeedsTypeRecheck = true;
+      return;
+    }
 
     const currentController = this.controller;
     const el = currentController.element;
@@ -225,46 +239,82 @@ export default class AllMediaElementsController {
 
     const oldController = currentController;
     const swapGeneration = this.activeMediaElementGeneration;
-    this.controller = undefined;
+    this.controllerSwapInFlightFrom = oldController;
     (async () => {
-      await oldController.destroy();
-      if (
-        this.activeMediaElement !== el
-        || this.activeMediaElementGeneration !== swapGeneration
-        || this.controller !== undefined
-      ) {
-        return;
+      try {
+        await oldController.destroy();
+        if (
+          this.activeMediaElement !== el
+          || this.activeMediaElementGeneration !== swapGeneration
+          || this.controller !== oldController
+        ) {
+          return;
+        }
+        this.controller = undefined;
+        assertDev(this.settings);
+        const elementSourceIsCrossOrigin = this.activeMediaElementSourceIsCrossOrigin;
+        if (typeof elementSourceIsCrossOrigin !== 'boolean') {
+          return;
+        }
+        const controllerTypeAtCreation = getAppropriateControllerType(
+          this.settings,
+          elementSourceIsCrossOrigin,
+          isLikelyLiveMediaElement(el),
+        );
+        const controller = await importAndCreateController(
+          controllerTypeAtCreation,
+          () => [
+            el,
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            extensionSettings2ControllerSettings(this.settings!),
+            (...args) => this.onSilenceSkippingSeek?.(...args),
+          ],
+          () => (
+            this.activeMediaElement === el
+            && this.activeMediaElementGeneration === swapGeneration
+            && this.controller === undefined
+            && this.controllerSwapInFlightFrom === oldController
+          ),
+        );
+        if (!controller) {
+          return;
+        }
+        this.controller = controller;
+        await controller.init();
+        if (
+          this.activeMediaElement !== el
+          || this.activeMediaElementGeneration !== swapGeneration
+        ) {
+          if (this.controller === controller) {
+            this.controller = undefined;
+            await controller.destroy();
+          }
+          return;
+        }
+        // Controller destruction is done in `detachFromActiveElement`.
+      } finally {
+        if (this.controllerSwapInFlightFrom === oldController) {
+          this.controllerSwapInFlightFrom = undefined;
+          const pendingSettings = this.controllerSwapPendingSettings;
+          this.controllerSwapPendingSettings = undefined;
+          const needsTypeRecheck = this.controllerSwapNeedsTypeRecheck;
+          this.controllerSwapNeedsTypeRecheck = false;
+          if (
+            pendingSettings
+            && this.activeMediaElement === el
+            && this.activeMediaElementGeneration === swapGeneration
+          ) {
+            this.reactToSettingsNewValues(pendingSettings);
+          }
+          if (
+            needsTypeRecheck
+            && this.activeMediaElement === el
+            && this.activeMediaElementGeneration === swapGeneration
+          ) {
+            this.updateControllerTypeForActiveElement();
+          }
+        }
       }
-      assertDev(this.settings);
-      const elementSourceIsCrossOrigin = this.activeMediaElementSourceIsCrossOrigin;
-      if (typeof elementSourceIsCrossOrigin !== 'boolean') {
-        return;
-      }
-      const controllerTypeAtCreation = getAppropriateControllerType(
-        this.settings,
-        elementSourceIsCrossOrigin,
-        isLikelyLiveMediaElement(el),
-      );
-      const controller = await importAndCreateController(
-        controllerTypeAtCreation,
-        () => [
-          el,
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          extensionSettings2ControllerSettings(this.settings!),
-          (...args) => this.onSilenceSkippingSeek?.(...args),
-        ]
-      );
-      if (
-        this.activeMediaElement !== el
-        || this.activeMediaElementGeneration !== swapGeneration
-        || this.controller !== undefined
-      ) {
-        await controller.destroy();
-        return;
-      }
-      this.controller = controller;
-      controller.init();
-      // Controller destruction is done in `detachFromActiveElement`.
     })();
   }
   private reactToSettingsNewValues(newValues: Partial<Settings>) {
@@ -287,12 +337,20 @@ export default class AllMediaElementsController {
       return;
     }
     Object.assign(this.settings, newValues);
-    assertDev(this.controller);
-    if (!this.controller) {
+    if (this.controllerSwapInFlightFrom) {
+      this.controllerSwapPendingSettings = {
+        ...this.controllerSwapPendingSettings,
+        ...newValues,
+      };
+      if (controllerTypeDependsOnSettings.some(key => key in newValues)) {
+        this.controllerSwapNeedsTypeRecheck = true;
+      }
       // A controller-type swap is in flight. The new controller is created from `this.settings`,
-      // so the just-applied values will be picked up when the swap finishes.
+      // so the just-applied values will be picked up when the swap finishes, then replayed if needed.
       return;
     }
+    assertDev(this.controller);
+    if (!this.controller) return;
 
     if (controllerTypeDependsOnSettings.some(key => key in newValues)) {
       this.updateControllerTypeForActiveElement();
@@ -451,6 +509,7 @@ export default class AllMediaElementsController {
       this.detachFromActiveElement();
     }
     this.activeMediaElementGeneration += 1;
+    const attachGeneration = this.activeMediaElementGeneration;
     this.activeMediaElement = el;
 
     assertDev(this._onDetachFromActiveElement === undefined, 'I think `_onDetachFromActiveElement` '
@@ -489,7 +548,7 @@ export default class AllMediaElementsController {
     el.addEventListener('durationchange', onMaybeSourceChange, { passive: true });
     onDetach(() => el.removeEventListener('durationchange', onMaybeSourceChange));
 
-    const controllerP = importAndCreateController(
+    const controllerP: Promise<SomeController | undefined> = importAndCreateController(
       getAppropriateControllerType(
         this.settings,
         elCrossOrigin,
@@ -500,10 +559,29 @@ export default class AllMediaElementsController {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         extensionSettings2ControllerSettings(this.settings!),
         (...args) => this.onSilenceSkippingSeek?.(...args),
-      ]
+      ],
+      () => (
+        this.activeMediaElement === el
+        && this.activeMediaElementGeneration === attachGeneration
+        && this.controller === undefined
+      ),
     ).then(async controller => {
+      if (!controller) {
+        return undefined;
+      }
       this.controller = controller;
       await controller.init();
+      if (
+        this.activeMediaElement !== el
+        || this.activeMediaElementGeneration !== attachGeneration
+        || this.controller !== controller
+      ) {
+        if (this.controller === controller) {
+          this.controller = undefined;
+          await controller.destroy();
+        }
+        return undefined;
+      }
       // Controller destruction is done in `detachFromActiveElement`.
       return controller;
     });
@@ -528,7 +606,7 @@ export default class AllMediaElementsController {
     // TODO an option to disable it.
     const timeSavedTrackerPromise = (async () => {
       const TimeSavedTracker = (await TimeSavedTrackerPromise).default
-      await controllerP; // It doesn't make sense to measure its effectiveness if it hasn't actually started working yet.
+      if (!await controllerP) return undefined; // It doesn't make sense to measure its effectiveness if it hasn't actually started working yet.
       const timeSavedTracker = this.timeSavedTracker = new TimeSavedTracker(
         el,
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -553,7 +631,7 @@ export default class AllMediaElementsController {
       (async () => {
         const startTrackingLifetimeTimeSaved = (await importP).default
         const TimeSavedTracker = (await TimeSavedTrackerPromise).default
-        await controllerP; // Same as above
+        if (!await controllerP) return; // Same as above
 
         const {
           getSessionTimeSaved,
@@ -737,18 +815,20 @@ export default class AllMediaElementsController {
           './badgeTimeSaved'
         )).startSendingTimeSavedMessagesForBadge;
         await requestIdlePromise({ timeout: 20_000 })
+        const timeSavedTracker = await timeSavedTrackerPromise;
+        if (!timeSavedTracker) return;
 
         await startSendingTimeSavedMessagesForBadge(
           el,
           this.settings!,
           addOnStorageChangedListener,
-          timeSavedTrackerPromise,
+          Promise.resolve(timeSavedTracker),
           onDetach
         );
       })();
     }
 
-    await controllerP;
+    if (!await controllerP) return;
     hotkeyListenerP && await hotkeyListenerP;
     await timeSavedTrackerPromise;
     sendingTimeSavedMessagesForBadgeP && await sendingTimeSavedMessagesForBadgeP
