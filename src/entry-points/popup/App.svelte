@@ -62,6 +62,7 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
   import EnableToggle from './components/EnableToggle.svelte';
   import SpeedReadout from './components/SpeedReadout.svelte';
   import SavedTimeCard from './components/SavedTimeCard.svelte';
+  import TimelineCanvas from './components/TimelineCanvas.svelte';
   import IntensitySlider from './components/IntensitySlider.svelte';
   import IconButton from './components/IconButton.svelte';
   import SettingsSheet from './components/SettingsSheet.svelte';
@@ -392,6 +393,13 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     updateSettingsLocalCopyAndStorage({ enabled });
   }
 
+  function togglePlayback() {
+    nonSettingsActionsPort?.postMessage([{
+      action: HotkeyAction.TOGGLE_PAUSE,
+      keyCombination: { code: 'stub' },
+    }]);
+  }
+
   function openOptionsAndCloseOnMobile() {
     openPopupOptionsPage();
     if (isMobile) {
@@ -558,12 +566,11 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
     savedLabel={viewState.savedTime.savedLabel}
     currentVideoLabel={viewState.savedTime.currentVideoLabel}
     weeklyBoostLabel={viewState.savedTime.weeklyBoostLabel}
-    levelLabel={viewState.savedTime.levelLabel}
     progressPercent={viewState.savedTime.progressPercent}
     toNextLevelLabel={viewState.savedTime.toNextLevelLabel}
     isLevelUp={viewState.savedTime.isLevelUp}
     topVideos={viewState.savedTime.topVideos}
-    weeklyText="this week"
+    weeklyText="week"
     progressText="next"
     ariaLabel={getMessage('timeSaved')}
   />
@@ -661,6 +668,21 @@ along with Jump Cutter Browser Extension.  If not, see <https://www.gnu.org/lice
         }}
       />
     {/await}
+  {/if}
+
+  {#if connected}
+    <section class="sl-chart-panel" aria-label="Playback activity">
+      <TimelineCanvas
+        {latestTelemetryRecord}
+        volumeThreshold={settings.volumeThreshold}
+        widthPx={settings.popupChartWidthPx}
+        heightPx={settings.popupChartHeightPx}
+        lengthSeconds={settings.popupChartLengthInSeconds}
+        timeProgressionSpeed={settings.popupChartSpeed}
+        soundedSpeed={settings.soundedSpeed}
+        onClick={togglePlayback}
+      />
+    </section>
   {/if}
 
   {#if !settings.advancedMode}

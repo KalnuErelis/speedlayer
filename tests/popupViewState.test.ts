@@ -29,7 +29,7 @@ describe("createPopupViewState", () => {
         nextLevelLabel: "Level 3",
         nextMilestoneLabel: "300.000s",
         progressPercent: 0,
-        toNextLevelLabel: "240.000s to Level 3",
+        toNextLevelLabel: "240.000s",
       },
     });
   });
@@ -67,7 +67,7 @@ describe("createPopupViewState", () => {
         nextLevelLabel: "Level 7",
         nextMilestoneLabel: "86400.000s",
         progressPercent: 0.07,
-        toNextLevelLabel: "82739.000s to Level 7",
+        toNextLevelLabel: "82739.000s",
       },
     });
   });
@@ -101,7 +101,7 @@ describe("createPopupViewState", () => {
         savedLabel: "3661.234s",
         currentVideoLabel: "12.345s",
         lifetimeLabel: "3661.234s",
-        toNextLevelLabel: "82738.766s to Level 7",
+        toNextLevelLabel: "82738.766s",
       },
     });
   });

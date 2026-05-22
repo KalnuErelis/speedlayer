@@ -25,15 +25,15 @@ const smokeSettings = {
   experimentalControllerType: 1,
   useSeparateMarginSettingsForDifferentAlgorithms: false,
   algorithmSpecificSettings: {
-    1: { volumeThreshold: 0.007, marginBefore: 0, marginAfter: 0.105 },
+    1: { volumeThreshold: 0.006, marginBefore: 0, marginAfter: 0.06 },
     2: { volumeThreshold: 0.01, marginBefore: 0.05, marginAfter: 0.03 },
   },
-  volumeThreshold: 0.007,
+  volumeThreshold: 0.006,
   silenceSpeedSpecificationMethod: 'relativeToSoundedSpeed',
-  silenceSpeedRaw: 2.3,
+  silenceSpeedRaw: 2.8,
   soundedSpeed: 1,
   marginBefore: 0,
-  marginAfter: 0.105,
+  marginAfter: 0.06,
   enableDesyncCorrection: true,
   enableHotkeys: false,
   hotkeys: [],
@@ -89,10 +89,10 @@ try {
   const result = await playAndWatch(cdp);
   await cdp.close();
 
-  if (!result.sawFastPlayback) {
+  if (!result.sawFastPlayback || !result.sawNormalAfterFastPlayback) {
     const targets = await listTargets();
     throw new Error(
-      `SpeedLayer did not accelerate the fixture. Last state: ${JSON.stringify(result.lastState)}\n`
+      `SpeedLayer did not switch between fast and normal playback. Result: ${JSON.stringify(result)}\n`
       + `Extension storage keys: ${JSON.stringify(Object.keys(extensionStorage))}\n`
       + `Targets: ${JSON.stringify(targets.map(target => ({
         type: target.type,
@@ -106,6 +106,7 @@ try {
   console.log(JSON.stringify({
     ok: true,
     maxPlaybackRate: result.maxPlaybackRate,
+    minPlaybackRateAfterFast: result.minPlaybackRateAfterFast,
     finalCurrentTime: result.lastState.currentTime,
     finalPaused: result.lastState.paused,
   }, null, 2));
@@ -402,9 +403,12 @@ async function playAndWatch(cdp) {
   `, true);
 
   let maxPlaybackRate = 0;
+  let minPlaybackRateAfterFast = Number.POSITIVE_INFINITY;
+  let sawFastPlayback = false;
+  let sawNormalAfterFastPlayback = false;
   let lastState;
 
-  for (let i = 0; i < 50; i += 1) {
+  for (let i = 0; i < 80; i += 1) {
     lastState = await evaluate(cdp, `(() => {
       const video = document.querySelector("video");
       return {
@@ -416,13 +420,32 @@ async function playAndWatch(cdp) {
       };
     })()`, true);
     maxPlaybackRate = Math.max(maxPlaybackRate, lastState.playbackRate);
-    if (maxPlaybackRate > 1.1 && lastState.currentTime > 1) {
-      return { sawFastPlayback: true, maxPlaybackRate, lastState };
+    if (lastState.playbackRate > 1.1) {
+      sawFastPlayback = true;
+    }
+    if (sawFastPlayback) {
+      minPlaybackRateAfterFast = Math.min(minPlaybackRateAfterFast, lastState.playbackRate);
+      sawNormalAfterFastPlayback ||= lastState.playbackRate < 1.01;
+    }
+    if (sawFastPlayback && sawNormalAfterFastPlayback && lastState.currentTime > 2) {
+      return {
+        sawFastPlayback,
+        sawNormalAfterFastPlayback,
+        maxPlaybackRate,
+        minPlaybackRateAfterFast,
+        lastState,
+      };
     }
     await delay(200);
   }
 
-  return { sawFastPlayback: false, maxPlaybackRate, lastState };
+  return {
+    sawFastPlayback,
+    sawNormalAfterFastPlayback,
+    maxPlaybackRate,
+    minPlaybackRateAfterFast,
+    lastState,
+  };
 }
 
 async function evaluate(cdp, expression, awaitPromise = false) {

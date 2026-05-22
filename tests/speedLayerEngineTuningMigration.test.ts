@@ -31,16 +31,16 @@ describe("SpeedLayer engine tuning migration", () => {
       speedLayerEngineTuningVersion,
       advancedMode: false,
       simpleSlider: 50,
-      volumeThreshold: 0.007,
-      silenceSpeedRaw: 2.3,
+      volumeThreshold: 0.004,
+      silenceSpeedRaw: 2.075,
       marginBefore: 0,
-      marginAfter: 0.105,
+      marginAfter: 0.12,
       algorithmSpecificSettings: {
         [ControllerKind.STRETCHING]: {
-          volumeThreshold: 0.007,
+          volumeThreshold: 0.004,
           marginBefore: 0,
-          marginAfter: 0.105,
-          silenceSpeedRaw: 2.3,
+          marginAfter: 0.12,
+          silenceSpeedRaw: 2.075,
         },
       },
     });
@@ -59,6 +59,24 @@ describe("SpeedLayer engine tuning migration", () => {
     });
   });
 
+  it("re-tunes simple mode profiles using the stored slider position", () => {
+    expect(getSpeedLayerEngineTuningStorageUpdate({
+      speedLayerEngineTuningVersion: 3,
+      advancedMode: false,
+      simpleSlider: 100,
+      volumeThreshold: 0.013,
+      silenceSpeedRaw: 3.2,
+      marginBefore: 0,
+      marginAfter: 0.03,
+    })).toMatchObject({
+      speedLayerEngineTuningVersion,
+      volumeThreshold: 0.006,
+      silenceSpeedRaw: 2.8,
+      marginBefore: 0,
+      marginAfter: 0.06,
+    });
+  });
+
   it("collapses default advanced mode for installs with the previous tuning migration", () => {
     expect(getSpeedLayerEngineTuningStorageUpdate({
       speedLayerEngineTuningVersion: 2,
@@ -71,6 +89,10 @@ describe("SpeedLayer engine tuning migration", () => {
     })).toEqual({
       speedLayerEngineTuningVersion,
       advancedMode: false,
+      volumeThreshold: 0.004,
+      silenceSpeedRaw: 2.075,
+      marginBefore: 0,
+      marginAfter: 0.12,
     });
   });
 
@@ -86,6 +108,10 @@ describe("SpeedLayer engine tuning migration", () => {
     })).toEqual({
       speedLayerEngineTuningVersion,
       advancedMode: false,
+      volumeThreshold: 0.004,
+      silenceSpeedRaw: 2.075,
+      marginBefore: 0,
+      marginAfter: 0.12,
     });
   });
 

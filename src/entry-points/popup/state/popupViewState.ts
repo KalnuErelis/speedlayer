@@ -100,7 +100,7 @@ export function createPopupViewState(input: PopupViewStateInput): PopupViewState
       nextLevelLabel: `Level ${nextLevel}`,
       nextMilestoneLabel: formatSavedTime(nextMilestoneSeconds),
       progressPercent,
-      toNextLevelLabel: `${formatSavedTime(remainingSeconds)} to Level ${nextLevel}`,
+      toNextLevelLabel: formatSavedTime(remainingSeconds),
       isLevelUp: input.newlyReachedMilestoneSeconds != undefined,
       topVideos: settings.videoTimeSavedLeaderboard
         .slice(0, 3)

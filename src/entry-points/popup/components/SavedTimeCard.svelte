@@ -2,7 +2,6 @@
   export let savedLabel: string;
   export let currentVideoLabel: string;
   export let weeklyBoostLabel: string;
-  export let levelLabel: string;
   export let progressPercent: number;
   export let toNextLevelLabel: string;
   export let isLevelUp: boolean;
@@ -17,9 +16,9 @@
 
 <section class:sl-saved-display--level-up={isLevelUp} class="sl-saved-display" aria-label={ariaLabel}>
   <div class="sl-saved-display__topline">
-    <span class="sl-saved-display__label">{levelLabel}</span>
+    <span class="sl-saved-display__label">Time saved</span>
     {#if isLevelUp}
-      <span class="sl-saved-display__badge">LEVEL UP</span>
+      <span class="sl-saved-display__badge">milestone</span>
     {/if}
   </div>
   <strong class="sl-saved-display__value">{savedLabel}</strong>
@@ -30,11 +29,11 @@
     ></span>
   </div>
   <div class="sl-saved-display__stats">
-    <span>this video saved</span>
+    <span>video</span>
     <span>{currentVideoLabel}</span>
-    <span>{weeklyText} saved</span>
+    <span>{weeklyText}</span>
     <span>{weeklyBoostLabel}</span>
-    <span>{progressText} milestone</span>
+    <span>{progressText}</span>
     <span>{toNextLevelLabel}</span>
   </div>
   {#if topVideos.length}

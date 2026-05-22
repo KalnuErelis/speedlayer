@@ -10,9 +10,9 @@ export function simpleSliderToSettings(rawSimpleSlider: number): IntensitySettin
   const simpleSlider = clamp(rawSimpleSlider, 0, 100);
 
   return {
-    volumeThreshold: roundSetting(0.001 + 0.00012 * simpleSlider),
-    silenceSpeedRaw: roundSetting(1.4 + 0.018 * simpleSlider),
-    marginAfter: roundSetting(0.18 - 0.0015 * simpleSlider),
+    volumeThreshold: roundSetting(0.002 + 0.00004 * simpleSlider),
+    silenceSpeedRaw: roundSetting(1.35 + 0.0145 * simpleSlider),
+    marginAfter: roundSetting(0.18 - 0.0012 * simpleSlider),
   };
 }
 
